@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --border: 214 32% 91%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+  }
+
+  .dark {
+    --background: 222 47% 5%;
+    --foreground: 213 31% 91%;
+    --card: 222 47% 8%;
+    --card-foreground: 213 31% 91%;
+    --border: 216 34% 17%;
+    --muted: 222 47% 12%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 216 34% 17%;
+    --accent-foreground: 213 31% 91%;
+  }
+
+  * { @apply border-border; }
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+           text-muted-foreground hover:text-foreground hover:bg-accent
+           transition-all duration-150 cursor-pointer;
+  }
+  .nav-item.active {
+    @apply bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400;
+  }
+  .thread-card {
+    @apply p-5 bg-card border border-border rounded-2xl
+           hover:border-blue-200 dark:hover:border-blue-800/50
+           hover:shadow-sm transition-all cursor-pointer;
+  }
+  .skeleton {
+    @apply bg-muted animate-pulse rounded-xl;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+}
