@@ -140,20 +140,22 @@ export default function CommunityPage() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 lg:p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Community</h1>
-            <p className="text-muted-foreground text-sm">Discussions, Q&A, opportunities — all in one place</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Community</h1>
+            <p className="text-muted-foreground text-sm mt-1">Discussions, Q&A, opportunities — all in one place</p>
           </div>
-          <Link
-            to="/community/new"
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:block">New Thread</span>
-          </Link>
+          {dbUser && (
+            <Link
+              to="/community/new"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors w-full sm:w-auto justify-center"
+            >
+              <Plus className="w-4 h-4" />
+              New Thread
+            </Link>
+          )}
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
@@ -170,12 +172,12 @@ export default function CommunityPage() {
                   className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+              <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
                 {FILTERS.map(({ label, value }) => (
                   <button
                     key={value}
                     onClick={() => setFilter(value)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all flex-shrink-0 ${
                       filter === value
                         ? 'bg-blue-600 text-white'
                         : 'bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80'
@@ -196,8 +198,8 @@ export default function CommunityPage() {
               <div className="text-center py-16 bg-card border border-border rounded-2xl">
                 <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground opacity-40 mb-4" />
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-2">No threads found</h3>
-                <p className="text-muted-foreground text-sm mb-4">Be the first to start a discussion!</p>
-                <Link to="/community/new" className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors">
+                <p className="text-muted-foreground text-sm">No discussions match your search. Try different filters.</p>
+              </div>
                   <Plus className="w-4 h-4" /> Start a Thread
                 </Link>
               </div>

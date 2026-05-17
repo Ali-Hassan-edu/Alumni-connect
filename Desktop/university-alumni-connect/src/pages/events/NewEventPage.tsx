@@ -25,8 +25,8 @@ export default function NewEventPage() {
   })
 
   const isVirtual = watch('is_virtual')
-  const inputClass = "w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm transition-all"
-  const labelClass = "block text-sm font-semibold text-gray-900 dark:text-white mb-1.5"
+  const inputClass = "w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-h-12 transition-all"
+  const labelClass = "block text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-1.5"
   const errorClass = "mt-1 text-xs text-red-500"
 
   const onSubmit = async (data: EventFormData) => {
@@ -65,20 +65,20 @@ export default function NewEventPage() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 lg:p-8 max-w-2xl mx-auto">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-md sm:max-w-lg lg:max-w-2xl mx-auto w-full">
         <div className="flex items-center gap-3 mb-6">
-          <Link to="/events" className="p-2 rounded-xl border border-border hover:bg-accent transition-colors">
+          <Link to="/events" className="p-2 rounded-xl border border-border hover:bg-accent transition-colors flex-shrink-0">
             <ArrowLeft className="w-4 h-4" />
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Create Event</h1>
-            <p className="text-muted-foreground text-sm">All approved members will be notified</p>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white break-words">Create Event</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm">All approved members will be notified</p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
-            <h2 className="font-semibold text-gray-900 dark:text-white">Event Information</h2>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
+          <div className="bg-card border border-border rounded-2xl p-4 sm:p-6 space-y-4">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Event Information</h2>
 
             <div>
               <label className={labelClass}>Event Title <span className="text-red-500">*</span></label>
@@ -88,11 +88,11 @@ export default function NewEventPage() {
 
             <div>
               <label className={labelClass}>Description <span className="text-red-500">*</span></label>
-              <textarea {...register('description')} rows={4} placeholder="Describe the event, agenda, speakers, etc." className={`${inputClass} resize-none`} />
+              <textarea {...register('description')} rows={3} placeholder="Describe the event, agenda, speakers, etc." className={`${inputClass} resize-vertical min-h-[120px] sm:min-h-[140px]`} />
               {errors.description && <p className={errorClass}>{errors.description.message}</p>}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>Event Type <span className="text-red-500">*</span></label>
                 <select {...register('event_type')} className={inputClass}>
@@ -115,10 +115,10 @@ export default function NewEventPage() {
             </div>
           </div>
 
-          <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
-            <h2 className="font-semibold text-gray-900 dark:text-white">Date, Time & Location</h2>
+          <div className="bg-card border border-border rounded-2xl p-4 sm:p-6 space-y-4">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Date, Time & Location</h2>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>Event Date & Time <span className="text-red-500">*</span></label>
                 <input {...register('event_date')} type="datetime-local" min={new Date().toISOString().slice(0, 16)} className={inputClass} />
@@ -153,9 +153,9 @@ export default function NewEventPage() {
             )}
           </div>
 
-          <div className="flex items-center justify-end gap-3">
-            <Link to="/events" className="px-5 py-2.5 border border-border rounded-xl text-sm font-medium hover:bg-accent transition-colors">Cancel</Link>
-            <button type="submit" disabled={isLoading} className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors">
+          <div className="flex flex-col sm:flex-row items-center justify-end gap-2 sm:gap-3">
+            <Link to="/events" className="w-full sm:w-auto px-5 py-2.5 border border-border rounded-xl text-sm font-medium hover:bg-accent transition-colors text-center">Cancel</Link>
+            <button type="submit" disabled={isLoading} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors min-h-12">
               {isLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating...</> : <><Calendar className="w-4 h-4" /> Create Event</>}
             </button>
           </div>

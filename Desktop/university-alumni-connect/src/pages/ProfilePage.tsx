@@ -413,7 +413,7 @@ export default function ProfilePage() {
               {/* Avatar */}
               <div className="relative inline-block mb-4">
                 {user.profile_picture_url ? (
-                  <img src={user.profile_picture_url} alt={user.full_name} className="w-24 h-24 rounded-full object-cover mx-auto" />
+                  <img src={user.profile_picture_url} alt={user.full_name} className="w-24 h-24 rounded-full object-cover mx-auto" loading="lazy" />
                 ) : (
                   <div className="w-24 h-24 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-700 dark:text-blue-400 font-bold text-2xl mx-auto">
                     {user.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}

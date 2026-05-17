@@ -18,7 +18,7 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
-  CREATE TYPE task_status AS ENUM ('open', 'assigned', 'in_progress', 'completed', 'cancelled');
+  CREATE TYPE task_status AS ENUM ('open', 'approved', 'assigned', 'in_progress', 'completed', 'cancelled');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
@@ -333,15 +333,15 @@ RETURNS void LANGUAGE sql AS $$
 $$;
 
 CREATE OR REPLACE FUNCTION find_matching_students(task_skills TEXT[], limit_count INTEGER DEFAULT 10)
-RETURNS TABLE(user_id UUID, full_name TEXT, skills TEXT[], match_count BIGINT) AS $$
+RETURNS TABLE(id UUID, full_name TEXT, email TEXT, profile_picture_url TEXT, skills TEXT[], match_percentage NUMERIC) AS $$
 BEGIN
   RETURN QUERY
-    SELECT u.id, u.full_name, sp.skills,
-      (SELECT COUNT(*) FROM unnest(sp.skills) s WHERE s = ANY(task_skills)) AS match_count
+    SELECT u.id, u.full_name, u.email, u.profile_picture_url, sp.skills,
+      ROUND(((SELECT COUNT(*) FROM unnest(sp.skills) s WHERE s = ANY(task_skills))::NUMERIC / GREATEST(array_length(task_skills, 1), 1)::NUMERIC) * 100, 1) AS match_percentage
     FROM users u
     JOIN student_profiles sp ON u.id = sp.user_id
     WHERE u.account_status = 'approved' AND u.role = 'student' AND sp.skills && task_skills
-    ORDER BY match_count DESC
+    ORDER BY match_percentage DESC
     LIMIT limit_count;
 END;
 $$ LANGUAGE plpgsql;

@@ -2,7 +2,7 @@
 
 // src/app/tasks/[id]/page.tsx
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { Link } from 'react-router-dom'
 import {
   ArrowLeft, CalendarDays, Users, Clock, Briefcase, CheckCircle,
@@ -25,6 +25,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 
 export default function TaskDetailPage() {
   const { id = '' } = useParams()
+  const navigate = useNavigate()
   const { dbUser } = useAuthStore()
   const [task, setTask] = useState<Task & { alumni?: User } | null>(null)
   const [assignments, setAssignments] = useState<(TaskAssignment & { student?: User })[]>([])
@@ -174,6 +175,24 @@ export default function TaskDetailPage() {
   const isAssignedStudent = !!myAssignment
   const deadlinePast = isPast(new Date(task.deadline))
   const alreadyAssignedIds = assignments.map(a => a.student_id)
+
+  if (dbUser?.role === 'student' && task.status !== 'approved') {
+    return (
+      <DashboardLayout>
+        <div className="p-6 lg:p-8 max-w-4xl mx-auto text-center">
+          <AlertTriangle className="w-12 h-12 mx-auto text-amber-500 mb-4" />
+          <h2 className="font-semibold text-xl text-gray-900 dark:text-white">Task Pending Approval</h2>
+          <p className="text-muted-foreground text-sm mt-2">This task isn&apos;t publicly available yet. Please check back later.</p>
+          <Link to="/tasks" className="text-blue-600 text-sm mt-4 inline-block">← Back to Tasks</Link>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  const handleContactAlumni = () => {
+    if (!task?.posted_by) return
+    navigate(`/messages?user=${task.posted_by}`)
+  }
 
   return (
     <DashboardLayout>

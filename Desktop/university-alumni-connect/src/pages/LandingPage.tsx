@@ -1,11 +1,13 @@
 // src/pages/LandingPage.tsx
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuthStore } from '@/lib/stores/authStore'
 import {
-  GraduationCap, Users, Briefcase, Calendar, MessageSquare,
-  ArrowRight, Star, CheckCircle, Shield, Bell, Moon, Sun
+  Briefcase, Calendar, MessageSquare,
+  ArrowRight, Star, Shield, Bell
 } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import Navbar from '@/components/Navbar'
+import TeamSection from '@/components/TeamSection'
+import ContactSection from '@/components/ContactSection'
 
 const STATS = [
   { value: '500+', label: 'Alumni Members' },
@@ -31,62 +33,20 @@ const TESTIMONIALS = [
 
 export default function LandingPage() {
   const { dbUser } = useAuthStore()
-  const navigate = useNavigate()
-  const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'))
-
-  const toggleTheme = () => {
-    const newDark = !isDark
-    setIsDark(newDark)
-    document.documentElement.classList.toggle('dark', newDark)
-    localStorage.setItem('theme', newDark ? 'dark' : 'light')
-  }
-
-  const getDashboardLink = () => {
-    if (!dbUser) return '/auth/login'
-    if (dbUser.role === 'super_admin') return '/dashboard/admin'
-    if (dbUser.role === 'alumni') return '/dashboard/alumni'
-    return '/dashboard/student'
-  }
 
   return (
     <div className="min-h-screen bg-background">
       {/* Navbar */}
-      <nav className="sticky top-0 z-50 bg-white/90 dark:bg-gray-950/90 backdrop-blur border-b border-border">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <div className="font-bold text-gray-900 dark:text-white text-sm leading-none">Alumni Connect</div>
-              <div className="text-xs text-muted-foreground">COMSATS Vehari</div>
-            </div>
-          </Link>
-
-          <div className="flex items-center gap-3">
-            <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-accent transition-colors text-muted-foreground">
-              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
-            {dbUser ? (
-              <button onClick={() => navigate(getDashboardLink())} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors">
-                Go to Dashboard
-              </button>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Link to="/auth/login" className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-foreground transition-colors">
-                  Sign In
-                </Link>
-                <Link to="/auth/signup" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors">
-                  Join Now
-                </Link>
-              </div>
-            )}
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950 py-20 lg:py-32">
+      <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950 py-20 lg:py-32" style={{
+        backgroundImage: 'url(/comsats.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}>
+        <div className="absolute inset-0 bg-black/30 dark:bg-black/50" />
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-200/30 dark:bg-blue-900/20 rounded-full blur-3xl" />
           <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-200/30 dark:bg-indigo-900/20 rounded-full blur-3xl" />
@@ -96,20 +56,20 @@ export default function LandingPage() {
             <Shield className="w-4 h-4" />
             Exclusive to COMSATS Vehari Members
           </div>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 dark:text-white mb-6 leading-tight">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white drop-shadow-lg mb-6 leading-tight">
             Connect. Grow.{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-indigo-300">
               Give Back.
             </span>
           </h1>
-          <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-lg sm:text-xl text-white drop-shadow mb-8 max-w-2xl mx-auto leading-relaxed">
             The official community platform for COMSATS University Vehari — bridging alumni and current students through mentorship, real-world tasks, and meaningful connections.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link to="/auth/signup" className="flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl text-lg transition-all hover:shadow-lg hover:shadow-blue-500/25">
               Join the Community <ArrowRight className="w-5 h-5" />
             </Link>
-            <Link to="/auth/login" className="flex items-center gap-2 px-8 py-4 border-2 border-border bg-white dark:bg-gray-800 hover:bg-accent text-gray-900 dark:text-white font-semibold rounded-2xl text-lg transition-all">
+            <Link to="/auth/login" className="flex items-center gap-2 px-8 py-4 border-2 border-white bg-white/10 hover:bg-white/20 text-white font-semibold rounded-2xl text-lg transition-all backdrop-blur">
               Sign In
             </Link>
           </div>
@@ -131,7 +91,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section className="py-20 px-4 max-w-6xl mx-auto">
+      <section id="features" className="py-20 px-4 max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-3">Everything in One Place</h2>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">A complete platform built specifically for our university community.</p>
@@ -196,6 +156,12 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Team Section */}
+      <TeamSection />
+
+      {/* Contact Section */}
+      <ContactSection />
+
       {/* CTA */}
       <section className="py-20 px-4 bg-gradient-to-r from-blue-600 to-indigo-600">
         <div className="max-w-3xl mx-auto text-center text-white">
@@ -213,15 +179,103 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-8 px-4 bg-card border-t border-border text-center text-sm text-muted-foreground">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <GraduationCap className="w-4 h-4 text-blue-600" />
-          <span className="font-semibold text-gray-900 dark:text-white">University Alumni Connect</span>
-        </div>
-        <p>Built for COMSATS University Vehari — {new Date().getFullYear()}</p>
-        <div className="flex items-center justify-center gap-4 mt-3">
-          <Link to="/auth/login" className="hover:text-foreground transition-colors">Sign In</Link>
-          <Link to="/auth/signup" className="hover:text-foreground transition-colors">Sign Up</Link>
+      <footer id="footer" className="py-16 px-4 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800">
+        <div className="max-w-6xl mx-auto">
+          {/* Top Section */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12 pb-12 border-b border-gray-200 dark:border-slate-800">
+            {/* Logo & Description */}
+            <div className="flex flex-col">
+              <div className="flex items-center gap-3 mb-4">
+                <img src="/logo.png" alt="Alumni Connect" className="h-10 w-10 rounded-lg shadow-md" loading="lazy" />
+                <div>
+                  <div className="font-bold text-gray-900 dark:text-white text-base">Alumni Connect</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">COMSATS Vehari</div>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Connecting alumni and students for mentorship, growth, and meaningful professional relationships.
+              </p>
+            </div>
+
+            {/* Quick Links */}
+            <div>
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-4 text-sm uppercase tracking-wide">Quick Links</h3>
+              <div className="space-y-3">
+                <Link to="/" className="block text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm">Home</Link>
+                <a href="#features" className="block text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm">Features</a>
+                <a href="#team" className="block text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm">Team</a>
+                <a href="#contact" className="block text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm">Contact</a>
+              </div>
+            </div>
+
+            {/* Contact Info */}
+            <div>
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-4 text-sm uppercase tracking-wide">Contact</h3>
+              <div className="space-y-3 text-sm">
+                <div>
+                  <p className="text-gray-500 dark:text-gray-500 text-xs uppercase tracking-wide mb-1">Email</p>
+                  <a href="mailto:hodcs@cuivehari.edu.pk" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    hodcs@cuivehari.edu.pk
+                  </a>
+                </div>
+                <div>
+                  <p className="text-gray-500 dark:text-gray-500 text-xs uppercase tracking-wide mb-1">Phone</p>
+                  <a href="tel:+923673602803" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    +92 (067) 3602803
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Social Links */}
+            <div>
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-4 text-sm uppercase tracking-wide">Follow Us</h3>
+              <div className="space-y-2">
+                <a 
+                  href="https://www.instagram.com/comsats_vehari_official/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm"
+                >
+                  <span>Instagram</span>
+                </a>
+                <a 
+                  href="https://web.facebook.com/people/Department-of-Computer-Science-CUI-Vehari/61582504795576/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm"
+                >
+                  <span>Facebook</span>
+                </a>
+                <a 
+                  href="https://ww2.comsats.edu.pk/cs_vhr" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm"
+                >
+                  <span>Website</span>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              © {new Date().getFullYear()} University Alumni Connect. All rights reserved.
+            </p>
+            <div className="flex items-center gap-6">
+              <a href="https://www.instagram.com/comsats_vehari_official/" target="_blank" rel="noopener noreferrer" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm font-medium">
+                Instagram
+              </a>
+              <a href="https://web.facebook.com/people/Department-of-Computer-Science-CUI-Vehari/61582504795576/" target="_blank" rel="noopener noreferrer" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm font-medium">
+                Facebook
+              </a>
+              <a href="https://ww2.comsats.edu.pk/cs_vhr" target="_blank" rel="noopener noreferrer" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm font-medium">
+                Website
+              </a>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
