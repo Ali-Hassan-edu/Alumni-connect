@@ -387,7 +387,7 @@ export function AdminAnnouncementsPage() {
 
       const announcementData = {
         ...data,
-        expires_at: data.expires_at ? new Date(data.expires_at).toISOString() : null,
+        expires_at: data.expires_at ? new Date(data.expires_at).toISOString() : undefined,
         admin_id: dbUser.id,
       }
 
@@ -421,11 +421,12 @@ export function AdminAnnouncementsPage() {
   }
 
   // Handle delete
-  const handleDeleteClick = (announcement: Announcement) => {
+  const handleDeleteClick = (id: string) => {
+    const announcement = announcements.find(a => a.id === id)
     setDeleteConfirm({
       isOpen: true,
-      id: announcement.id,
-      title: announcement.title,
+      id,
+      title: announcement?.title || 'this announcement',
     })
   }
 

@@ -4,7 +4,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { GraduationCap, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { signInWithEmail } from '@/lib/firebase/auth'
 import { userQueries } from '@/lib/supabase/queries'
 import { useAuthStore } from '@/lib/stores/authStore'
@@ -55,9 +55,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md lg:max-w-lg">
         <div className="text-center mb-6 sm:mb-8">
           <Link to="/" className="inline-flex flex-col items-center gap-3">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-              <GraduationCap className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-            </div>
+            <img src="/logo.png" alt="Alumni Connect" className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-cover shadow-lg shadow-blue-500/30" loading="lazy" />
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Alumni Connect</h1>
               <p className="text-muted-foreground text-xs sm:text-sm">COMSATS University Vehari</p>

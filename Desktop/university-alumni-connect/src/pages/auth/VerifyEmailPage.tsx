@@ -1,7 +1,7 @@
 // src/pages/auth/VerifyEmailPage.tsx
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Mail, GraduationCap, RefreshCw, Loader2 } from 'lucide-react'
+import { Mail, RefreshCw, Loader2 } from 'lucide-react'
 import { resendVerificationEmail, signOutUser } from '@/lib/firebase/auth'
 import { useAuthStore } from '@/lib/stores/authStore'
 import toast from 'react-hot-toast'
@@ -26,7 +26,7 @@ export default function VerifyEmailPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-950 dark:to-blue-950 flex items-center justify-center p-4">
       <div className="max-w-md w-full text-center">
         <Link to="/" className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center"><GraduationCap className="w-6 h-6 text-white" /></div>
+          <img src="/logo.png" alt="Alumni Connect" className="w-10 h-10 rounded-xl object-cover" loading="lazy" />
           <span className="font-bold text-xl text-gray-900 dark:text-white">Alumni Connect</span>
         </Link>
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-border p-8 shadow-sm">

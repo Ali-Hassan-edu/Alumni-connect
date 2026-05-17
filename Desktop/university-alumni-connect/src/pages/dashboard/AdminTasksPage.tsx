@@ -4,13 +4,13 @@ import { useAuthStore } from '@/lib/stores/authStore'
 import { userQueries } from '@/lib/supabase/queries'
 import { TaskAssignmentModal } from '@/components/TaskAssignmentModal'
 import { Eye, Send, Search, Briefcase } from 'lucide-react'
-import type { Task } from '@/lib/types'
+import type { Task, User } from '@/lib/types'
 import { format, isPast } from 'date-fns'
 import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase/client'
 
-interface TaskWithAlumni extends Task {
-  alumni?: { full_name: string; email: string }
+type TaskWithAlumni = Omit<Task, 'alumni'> & {
+  alumni?: Pick<User, 'id' | 'full_name' | 'email' | 'profile_picture_url'>
 }
 
 const PRIORITY_CONFIG: Record<string, { color: string; label: string }> = {
@@ -245,7 +245,7 @@ export default function AdminTasksPage() {
       {/* Assignment Modal */}
       {selectedTask && (
         <TaskAssignmentModal
-          task={selectedTask}
+          task={{ ...selectedTask, alumni: undefined }}
           isOpen={showAssignmentModal}
           onClose={() => {
             setShowAssignmentModal(false)

@@ -1,7 +1,7 @@
 // src/pages/auth/PendingApprovalPage.tsx
 import { useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Clock, GraduationCap, Mail, LogOut, RefreshCw } from 'lucide-react'
+import { Clock, Mail, LogOut, RefreshCw } from 'lucide-react'
 import { signOutUser } from '@/lib/firebase/auth'
 import { userQueries } from '@/lib/supabase/queries'
 import { useAuthStore } from '@/lib/stores/authStore'
@@ -38,7 +38,7 @@ export default function PendingApprovalPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950 flex flex-col">
       <div className="px-6 py-4 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center"><GraduationCap className="w-5 h-5 text-white" /></div>
+          <img src="/logo.png" alt="Alumni Connect" className="w-8 h-8 rounded-lg object-cover" loading="lazy" />
           <span className="font-bold text-gray-900 dark:text-white">Alumni Connect</span>
         </Link>
         <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">

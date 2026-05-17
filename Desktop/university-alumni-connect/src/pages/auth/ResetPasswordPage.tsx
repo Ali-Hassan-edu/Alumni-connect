@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { GraduationCap, Mail, Loader2, ArrowLeft, CheckCircle } from 'lucide-react'
+import { Mail, Loader2, ArrowLeft, CheckCircle } from 'lucide-react'
 import { resetPassword } from '@/lib/firebase/auth'
 import toast from 'react-hot-toast'
 
@@ -27,7 +27,7 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4 sm:p-6 lg:p-8">
       <div className="max-w-md w-full">
         <Link to="/" className="flex items-center gap-2 mb-8">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center"><GraduationCap className="w-5 h-5 text-white" /></div>
+          <img src="/logo.png" alt="Alumni Connect" className="w-8 h-8 rounded-lg object-cover" loading="lazy" />
           <span className="font-bold text-sm sm:text-base text-gray-900 dark:text-white">Alumni Connect</span>
         </Link>
         <div className="bg-card border border-border rounded-2xl p-4 sm:p-6 lg:p-8">

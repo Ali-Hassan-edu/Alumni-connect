@@ -67,7 +67,7 @@ export default function AdminTaskApprovalsPage() {
           dbUser.id,
           notes,
           {
-            admin_notes: notes || null,
+            admin_notes: notes || undefined,
             recommended_skills: recommendedSkills,
           }
         )
@@ -89,7 +89,7 @@ export default function AdminTaskApprovalsPage() {
           dbUser.id,
           notes,
           {
-            admin_notes: notes || null,
+            admin_notes: notes || undefined,
             recommended_skills: recommendedSkills,
           }
         )

@@ -195,13 +195,23 @@ export default function CommunityPage() {
                 {Array.from({ length: 5 }).map((_, i) => <div key={i} className="skeleton h-36 rounded-2xl" />)}
               </div>
             ) : threads.length === 0 ? (
-              <div className="text-center py-16 bg-card border border-border rounded-2xl">
-                <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground opacity-40 mb-4" />
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-2">No threads found</h3>
-                <p className="text-muted-foreground text-sm">No discussions match your search. Try different filters.</p>
-              </div>
-                  <Plus className="w-4 h-4" /> Start a Thread
-                </Link>
+              <div className="space-y-4">
+                <div className="text-center py-16 bg-card border border-border rounded-2xl">
+                  <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground opacity-40 mb-4" />
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">No threads found</h3>
+                  <p className="text-muted-foreground text-sm">No discussions match your search. Try different filters.</p>
+                </div>
+                {dbUser && (
+                  <div className="flex justify-center">
+                    <Link
+                      to="/community/new"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Start a Thread
+                    </Link>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-3">

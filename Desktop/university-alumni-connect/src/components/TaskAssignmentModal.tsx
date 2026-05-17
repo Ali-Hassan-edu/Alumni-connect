@@ -41,8 +41,8 @@ export function TaskAssignmentModal({ task, isOpen, onClose, onSuccess }: TaskAs
   const loadMatchingStudents = async () => {
     setLoading(true)
     try {
-      const matching = await taskQueries.findMatchingStudents(task.required_skills)
-      setStudents(matching.sort((a, b) => b.match_percentage - a.match_percentage))
+      const matching = (await taskQueries.findMatchingStudents(task.required_skills)) as MatchingStudent[]
+      setStudents(matching.sort((a: MatchingStudent, b: MatchingStudent) => b.match_percentage - a.match_percentage))
     } catch (error) {
       console.error('Error loading matching students:', error)
       toast.error('Failed to load matching students')

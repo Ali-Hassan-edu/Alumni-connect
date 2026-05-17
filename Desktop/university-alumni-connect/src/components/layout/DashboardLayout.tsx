@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
-  GraduationCap, LayoutDashboard, Users, MessageSquare, Calendar,
+  LayoutDashboard, Users, MessageSquare, Calendar,
   Bell, User, LogOut, Menu, X, Sun, Moon, Briefcase,
   ChevronDown, Shield, ClipboardList, Network, Megaphone
 } from 'lucide-react'
@@ -82,9 +82,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       {/* Logo */}
       <div className="px-4 py-4 border-b border-border">
         <Link to="/" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
-            <GraduationCap className="w-5 h-5 text-white" />
-          </div>
+          <img src="/logo.png" alt="Alumni Connect" className="w-8 h-8 rounded-lg object-cover shrink-0" loading="lazy" />
           <div>
             <div className="font-bold text-gray-900 dark:text-white text-sm leading-none">Alumni Connect</div>
             <div className="text-xs text-muted-foreground capitalize">{role.replace('_', ' ')}</div>
@@ -207,7 +205,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
           {/* Logo/title */}
           <div className="flex items-center gap-2">
-            <GraduationCap className="w-5 h-5 text-blue-600" />
+            <img src="/logo.png" alt="Alumni Connect" className="w-5 h-5 rounded object-cover" loading="lazy" />
             <span className="font-bold text-sm">Alumni Connect</span>
           </div>
 

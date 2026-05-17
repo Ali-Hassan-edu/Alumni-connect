@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { Moon, Sun, Menu, X } from 'lucide-react'
 import { useState } from 'react'
@@ -8,8 +8,10 @@ import { touchFriendly } from '@/lib/responsive'
 export default function Navbar() {
   const { dbUser } = useAuthStore()
   const navigate = useNavigate()
+  const location = useLocation()
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'))
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const isLandingPage = location.pathname === '/'
 
   const toggleTheme = () => {
     const newDark = !isDark
@@ -94,7 +96,7 @@ export default function Navbar() {
             </button>
 
             {/* Auth buttons - Hide on mobile, show from sm: */}
-            {dbUser ? (
+            {dbUser && !isLandingPage ? (
               <button
                 onClick={() => navigate(getDashboardLink())}
                 className="hidden sm:inline-flex px-4 py-2 sm:px-5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold rounded-lg transition-all hover:shadow-lg hover:shadow-blue-500/20 min-h-10 sm:min-h-11"
@@ -119,7 +121,7 @@ export default function Navbar() {
             )}
 
             {/* Mobile menu - Authenticated users use MobileNav drawer */}
-            {dbUser ? (
+            {dbUser && !isLandingPage ? (
               <MobileNav />
             ) : (
               <>

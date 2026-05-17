@@ -90,6 +90,11 @@ export default function ProfilePage() {
 
   const skillsValue = watch('skills')
   const interestsValue = watch('interests')
+  const getErrorMessage = (error: unknown): string | undefined => {
+    if (!error || typeof error !== 'object' || !('message' in error)) return undefined
+    const message = (error as { message?: unknown }).message
+    return typeof message === 'string' ? message : undefined
+  }
 
   useEffect(() => { if (id) loadProfile() }, [id])
 
@@ -147,8 +152,8 @@ export default function ProfilePage() {
   }
 
   const handleRemoveTag = (field: 'skills' | 'interests', tag: string) => {
-    const current = field === 'skills' ? skillsValue : interestsValue
-    setValue(field, current.filter(t => t !== tag))
+    const current = ((field === 'skills' ? skillsValue : interestsValue) || []) as string[]
+    setValue(field, current.filter((t: string) => t !== tag))
   }
 
   const handleSaveProfile = async (data: AlumniEditFormData | StudentEditFormData) => {
@@ -159,9 +164,9 @@ export default function ProfilePage() {
       // Update users table with common fields
       await userQueries.updateUser(user.id, {
         full_name: data.full_name,
-        phone: data.phone || null,
-        linkedin_url: data.linkedin_url || null,
-        short_bio: data.short_bio || null,
+        phone: data.phone || undefined,
+        linkedin_url: data.linkedin_url || undefined,
+        short_bio: data.short_bio || undefined,
       })
 
       // Update role-specific profile table
@@ -170,8 +175,8 @@ export default function ProfilePage() {
         await profileQueries.upsertAlumniProfile({
           user_id: user.id,
           skills: alumniData.skills,
-          current_company: alumniData.current_company || null,
-          job_title: alumniData.job_title || null,
+          current_company: alumniData.current_company || undefined,
+          job_title: alumniData.job_title || undefined,
         })
       } else {
         const studentData = data as StudentEditFormData
@@ -179,7 +184,7 @@ export default function ProfilePage() {
           user_id: user.id,
           skills: studentData.skills,
           interests: studentData.interests,
-          github_url: studentData.github_url || null,
+          github_url: studentData.github_url || undefined,
           semester: studentData.semester,
           cgpa: studentData.cgpa,
         })
@@ -199,7 +204,7 @@ export default function ProfilePage() {
 
   const handleStartChat = async () => {
     if (!dbUser?.id || !user) return
-    const conv = await messageQueries.getOrCreateConversation(dbUser.id, user.id)
+    await messageQueries.getOrCreateConversation(dbUser.id, user.id)
     navigate('/messages')
   }
 
@@ -245,7 +250,7 @@ export default function ProfilePage() {
                   {...register('full_name')}
                   className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                {errors.full_name && <p className="text-sm text-red-600 mt-1">{errors.full_name.message}</p>}
+                {errors.full_name && <p className="text-sm text-red-600 mt-1">{getErrorMessage(errors.full_name)}</p>}
               </div>
 
               {/* Phone */}
@@ -256,7 +261,7 @@ export default function ProfilePage() {
                   {...register('phone')}
                   className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                {errors.phone && <p className="text-sm text-red-600 mt-1">{errors.phone.message}</p>}
+                {errors.phone && <p className="text-sm text-red-600 mt-1">{getErrorMessage(errors.phone)}</p>}
               </div>
 
               {/* LinkedIn URL */}
@@ -268,7 +273,7 @@ export default function ProfilePage() {
                   placeholder="https://linkedin.com/in/yourprofile"
                   className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                {errors.linkedin_url && <p className="text-sm text-red-600 mt-1">{errors.linkedin_url.message}</p>}
+                {errors.linkedin_url && <p className="text-sm text-red-600 mt-1">{getErrorMessage(errors.linkedin_url)}</p>}
               </div>
 
               {/* Bio */}
@@ -280,7 +285,7 @@ export default function ProfilePage() {
                   placeholder="Write a short bio about yourself..."
                   className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 />
-                {errors.short_bio && <p className="text-sm text-red-600 mt-1">{errors.short_bio.message}</p>}
+                {errors.short_bio && <p className="text-sm text-red-600 mt-1">{getErrorMessage(errors.short_bio)}</p>}
               </div>
 
               {/* Skills */}
@@ -292,7 +297,7 @@ export default function ProfilePage() {
                   onRemove={(tag) => handleRemoveTag('skills', tag)}
                   placeholder="Type a skill and press Enter"
                 />
-                {errors.skills && <p className="text-sm text-red-600 mt-1">{errors.skills.message}</p>}
+                {errors.skills && <p className="text-sm text-red-600 mt-1">{getErrorMessage(errors.skills)}</p>}
               </div>
 
               {/* Alumni-specific fields */}
@@ -305,7 +310,7 @@ export default function ProfilePage() {
                       {...register('job_title')}
                       className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
-                    {errors.job_title && <p className="text-sm text-red-600 mt-1">{errors.job_title.message}</p>}
+                    {errors.job_title && <p className="text-sm text-red-600 mt-1">{getErrorMessage(errors.job_title)}</p>}
                   </div>
 
                   <div>
@@ -315,7 +320,7 @@ export default function ProfilePage() {
                       {...register('current_company')}
                       className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
-                    {errors.current_company && <p className="text-sm text-red-600 mt-1">{errors.current_company.message}</p>}
+                    {errors.current_company && <p className="text-sm text-red-600 mt-1">{getErrorMessage(errors.current_company)}</p>}
                   </div>
                 </>
               )}
@@ -331,7 +336,7 @@ export default function ProfilePage() {
                       onRemove={(tag) => handleRemoveTag('interests', tag)}
                       placeholder="Type an interest and press Enter"
                     />
-                    {errors.interests && <p className="text-sm text-red-600 mt-1">{errors.interests.message}</p>}
+                    {errors.interests && <p className="text-sm text-red-600 mt-1">{getErrorMessage(errors.interests)}</p>}
                   </div>
 
                   <div>
@@ -342,7 +347,7 @@ export default function ProfilePage() {
                       placeholder="https://github.com/yourprofile"
                       className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
-                    {errors.github_url && <p className="text-sm text-red-600 mt-1">{errors.github_url.message}</p>}
+                    {errors.github_url && <p className="text-sm text-red-600 mt-1">{getErrorMessage(errors.github_url)}</p>}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -355,7 +360,7 @@ export default function ProfilePage() {
                         max="8"
                         className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
-                      {errors.semester && <p className="text-sm text-red-600 mt-1">{errors.semester.message}</p>}
+                      {errors.semester && <p className="text-sm text-red-600 mt-1">{getErrorMessage(errors.semester)}</p>}
                     </div>
 
                     <div>
@@ -368,7 +373,7 @@ export default function ProfilePage() {
                         step="0.01"
                         className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
-                      {errors.cgpa && <p className="text-sm text-red-600 mt-1">{errors.cgpa.message}</p>}
+                      {errors.cgpa && <p className="text-sm text-red-600 mt-1">{getErrorMessage(errors.cgpa)}</p>}
                     </div>
                   </div>
                 </>

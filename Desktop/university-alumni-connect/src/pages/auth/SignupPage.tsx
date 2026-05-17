@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { GraduationCap, Eye, EyeOff, Loader2, X, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react'
+import { Eye, EyeOff, Loader2, X, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { signUpWithEmail } from '@/lib/firebase/auth'
 import { userQueries } from '@/lib/supabase/queries'
@@ -170,7 +170,7 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 z-50 bg-white/90 dark:bg-gray-950/90 backdrop-blur border-b border-border px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2"><div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center"><GraduationCap className="w-5 h-5 text-white" /></div><span className="font-bold text-sm sm:text-base hidden sm:block">Alumni Connect</span></Link>
+        <Link to="/" className="flex items-center gap-2"><img src="/logo.png" alt="Alumni Connect" className="w-8 h-8 rounded-lg object-cover" loading="lazy" /><span className="font-bold text-sm sm:text-base hidden sm:block">Alumni Connect</span></Link>
         <p className="text-xs sm:text-sm text-muted-foreground">Member? <Link to="/auth/login" className="text-blue-600 font-medium hover:text-blue-700">Sign in</Link></p>
       </div>
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
