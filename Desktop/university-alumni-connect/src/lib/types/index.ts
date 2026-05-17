@@ -4,7 +4,7 @@
 
 export type UserRole = 'super_admin' | 'alumni' | 'student'
 export type AccountStatus = 'pending' | 'approved' | 'rejected' | 'blocked'
-export type TaskStatus = 'open' | 'assigned' | 'in_progress' | 'completed' | 'cancelled'
+export type TaskStatus = 'pending' | 'open' | 'approved' | 'assigned' | 'in_progress' | 'completed' | 'cancelled' | 'rejected'
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
 export type EventType = 'meetup' | 'seminar' | 'workshop' | 'get_together' | 'career_fair' | 'other'
 export type NotificationType =
@@ -99,6 +99,7 @@ export interface Task {
   description: string
   posted_by: string  // alumni user_id
   required_skills: string[]
+  recommended_skills?: string[]
   deadline: string
   budget_stipend?: string
   team_size: number
@@ -375,3 +376,48 @@ export interface EventForm {
 // ─── Aliases used by pages ───────────────────────────────────────────────────
 export type ThreadFormData = ThreadForm
 export type TaskFormData = TaskForm
+
+// ============================================================
+// Task Approval Types
+// ============================================================
+
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected'
+
+export interface TaskApproval {
+  id: string
+  task_id: string
+  admin_id: string
+  status: ApprovalStatus
+  notes?: string
+  created_at: string
+  approved_at?: string
+  admin?: User
+  task?: Task
+}
+
+// ============================================================
+// Announcement Types
+// ============================================================
+
+export type AnnouncementPriority = 'low' | 'medium' | 'high'
+
+export interface Announcement {
+  id: string
+  admin_id: string
+  title: string
+  content: string
+  priority: AnnouncementPriority
+  is_pinned: boolean
+  expires_at?: string
+  created_at: string
+  updated_at: string
+  admin?: User
+}
+
+export interface AnnouncementForm {
+  title: string
+  content: string
+  priority: AnnouncementPriority
+  is_pinned: boolean
+  expires_at?: string
+}

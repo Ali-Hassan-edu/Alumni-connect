@@ -2,7 +2,7 @@
 
 // src/app/messages/page.tsx
 import { useEffect, useState, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Search, Send, MessageSquare, Loader2, ArrowLeft } from 'lucide-react'
 import { DashboardLayout, Avatar } from '@/components/layout/DashboardLayout'
 import { messageQueries, userQueries } from '@/lib/supabase/queries'
@@ -54,10 +54,38 @@ export default function MessagesPage() {
   const [isLoadingUsers, setIsLoadingUsers] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+  const [searchParams] = useSearchParams()
+  const [autoOpened, setAutoOpened] = useState(false)
 
   useEffect(() => {
     if (dbUser?.id) loadConversations()
   }, [dbUser?.id])
+
+  useEffect(() => {
+    const autoUserId = searchParams.get('user')
+    const autoConversationId = searchParams.get('conversation')
+    const autoOpen = async () => {
+      if (!dbUser?.id || autoOpened) return
+      try {
+        if (autoUserId) {
+          const user = await userQueries.getById(autoUserId)
+          if (user) await startConversation(user)
+          setAutoOpened(true)
+        } else if (autoConversationId) {
+          const { data } = await supabase.from('conversations').select('*').eq('id', autoConversationId).single()
+          if (data) {
+            const otherId = data.participant_1 === dbUser.id ? data.participant_2 : data.participant_1
+            const otherUser = await userQueries.getById(otherId)
+            await openConversation({ ...data, other_user: otherUser || undefined })
+          }
+          setAutoOpened(true)
+        }
+      } catch {
+        setAutoOpened(true)
+      }
+    }
+    autoOpen()
+  }, [dbUser?.id, searchParams, autoOpened])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })

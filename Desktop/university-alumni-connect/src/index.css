@@ -2,6 +2,80 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Keyframe animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Accessibility: Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -35,22 +109,53 @@
 }
 
 @layer components {
+  /* Fade-in animation for page content */
+  .fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+
+  /* Slide animations for components */
+  .slide-in-up {
+    animation: slideInUp 0.5s ease-out;
+  }
+
+  .slide-in-down {
+    animation: slideInDown 0.5s ease-out;
+  }
+
+  .slide-in-left {
+    animation: slideInLeft 0.5s ease-out;
+  }
+
+  .slide-in-right {
+    animation: slideInRight 0.5s ease-out;
+  }
+
+  /* Navigation item with smooth transitions and hover scale */
   .nav-item {
     @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
            text-muted-foreground hover:text-foreground hover:bg-accent
-           transition-all duration-150 cursor-pointer;
+           transition-all duration-150 cursor-pointer
+           hover:scale-105 active:scale-95;
   }
   .nav-item.active {
     @apply bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400;
   }
+
+  /* Thread card with smooth transitions and hover effects */
   .thread-card {
     @apply p-5 bg-card border border-border rounded-2xl
            hover:border-blue-200 dark:hover:border-blue-800/50
-           hover:shadow-sm transition-all cursor-pointer;
+           hover:shadow-sm transition-all duration-200 cursor-pointer
+           hover:scale-[1.02] hover:-translate-y-1;
   }
+
+  /* Skeleton with animation */
   .skeleton {
     @apply bg-muted animate-pulse rounded-xl;
   }
+
+  /* Custom scrollbar */
   .custom-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--border)) transparent;
@@ -58,6 +163,49 @@
   .custom-scrollbar::-webkit-scrollbar { width: 4px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-border rounded-full;
+    @apply bg-border rounded-full transition-colors duration-200;
+  }
+
+  /* Button transitions and hover effects */
+  button,
+  [role="button"],
+  input[type="button"],
+  input[type="submit"] {
+    @apply transition-all duration-150 active:scale-95;
+  }
+
+  button:hover,
+  [role="button"]:hover,
+  input[type="button"]:hover,
+  input[type="submit"]:hover {
+    @apply transform scale-105;
+  }
+
+  /* Link hover effects */
+  a {
+    @apply transition-all duration-150;
+  }
+
+  a:hover {
+    @apply opacity-75;
+  }
+
+  /* Smooth transitions for all interactive elements */
+  input,
+  textarea,
+  select {
+    @apply transition-all duration-150;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    @apply ring-2 ring-blue-500 dark:ring-blue-400;
+  }
+
+  /* Card and container transitions */
+  [class*="card"],
+  [class*="container"] {
+    @apply transition-all duration-200;
   }
 }

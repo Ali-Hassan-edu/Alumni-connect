@@ -11,8 +11,11 @@ import {
 import { DashboardLayout, Avatar } from '@/components/layout/DashboardLayout'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { supabase } from '@/lib/supabase/client'
-import type { TaskAssignment, Thread, Event } from '@/lib/types'
+import { announcementQueries } from '@/lib/supabase/queries'
+import type { TaskAssignment, Thread, Event, Announcement } from '@/lib/types'
 import { formatDistanceToNow, format } from 'date-fns'
+import { responsiveClasses } from '@/lib/responsive'
+import { AnnouncementCard } from '@/components/AnnouncementCard'
 
 export default function StudentDashboard() {
   const { dbUser } = useAuthStore()
@@ -21,6 +24,7 @@ export default function StudentDashboard() {
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([])
   const [studentProfile, setStudentProfile] = useState<{ skills: string[]; interests: string[]; cgpa: number; semester: number; github_url?: string } | null>(null)
   const [openTasks, setOpenTasks] = useState<{ id: string; title: string; required_skills: string[]; budget_stipend?: string; deadline: string; alumni?: { full_name: string } }[]>([])
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -29,18 +33,20 @@ export default function StudentDashboard() {
 
   const loadData = async () => {
     if (!dbUser?.id) return
-    const [assignRes, threadsRes, eventsRes, profileRes, tasksRes] = await Promise.all([
+    const [assignRes, threadsRes, eventsRes, profileRes, tasksRes, announcementsRes] = await Promise.all([
       supabase.from('task_assignments').select('*, task:tasks(id, title, deadline, priority, status, required_skills, budget_stipend)').eq('student_id', dbUser.id).order('assigned_at', { ascending: false }).limit(5),
       supabase.from('threads').select('*, author:users(full_name, role, profile_picture_url)').order('created_at', { ascending: false }).limit(6),
       supabase.from('events').select('*').eq('is_published', true).gte('event_date', new Date().toISOString()).order('event_date').limit(3),
       supabase.from('student_profiles').select('*').eq('user_id', dbUser.id).single(),
-      supabase.from('tasks').select('*, alumni:users(full_name)').eq('status', 'open').order('created_at', { ascending: false }).limit(4),
+      supabase.from('tasks').select('*, alumni:users(full_name)').eq('status', 'approved').order('created_at', { ascending: false }).limit(4),
+      announcementQueries.getAnnouncements(),
     ])
     setAssignments((assignRes.data as unknown as TaskAssignment[]) || [])
     setRecentThreads((threadsRes.data as unknown as Thread[]) || [])
     setUpcomingEvents((eventsRes.data as unknown as Event[]) || [])
     setStudentProfile(profileRes.data)
     setOpenTasks((tasksRes.data as unknown) as typeof openTasks || [])
+    setAnnouncements(announcementsRes || [])
     setIsLoading(false)
   }
 
@@ -53,16 +59,16 @@ export default function StudentDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 lg:p-8 space-y-6">
+      <div className={`${responsiveClasses.mobilePadding} space-y-6`}>
         {/* Welcome Header */}
-        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl p-6 text-white relative overflow-hidden">
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl p-4 sm:p-6 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-          <div className="relative flex items-start justify-between gap-4">
-            <div className="flex items-center gap-4">
+          <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full">
               <Avatar name={dbUser?.full_name || ''} imageUrl={dbUser?.profile_picture_url} size="lg" />
-              <div>
-                <h1 className="text-xl font-bold">Hey, {dbUser?.full_name?.split(' ')[0]}! 🎓</h1>
-                <p className="text-emerald-100 text-sm">
+              <div className="flex-1">
+                <h1 className={`${responsiveClasses.heading2} font-bold`}>Hey, {dbUser?.full_name?.split(' ')[0]}! 🎓</h1>
+                <p className="text-emerald-100 text-sm mt-1">
                   {studentProfile ? `Semester ${studentProfile.semester} • CGPA: ${studentProfile.cgpa}` : 'Student'}
                 </p>
                 <div className="flex items-center gap-2 mt-2">
@@ -79,11 +85,11 @@ export default function StudentDashboard() {
                 </div>
               </div>
             </div>
-            <div className="flex flex-col gap-2 shrink-0">
-              <Link to="/community/new" className="flex items-center gap-1.5 px-3 py-2 bg-white/20 border border-white/30 text-white rounded-xl text-xs font-medium hover:bg-white/30 transition-colors whitespace-nowrap">
+            <div className="flex flex-col gap-2 shrink-0 w-full sm:w-auto">
+              <Link to="/community/new" className="flex items-center gap-1.5 px-3 py-2 bg-white/20 border border-white/30 text-white rounded-xl text-xs font-medium hover:bg-white/30 transition-colors whitespace-nowrap justify-center">
                 <MessageSquare className="w-3.5 h-3.5" /> New Thread
               </Link>
-              <Link to="/tasks" className="flex items-center gap-1.5 px-3 py-2 bg-white text-emerald-700 rounded-xl text-xs font-semibold hover:bg-emerald-50 transition-colors whitespace-nowrap">
+              <Link to="/tasks" className="flex items-center gap-1.5 px-3 py-2 bg-white text-emerald-700 rounded-xl text-xs font-semibold hover:bg-emerald-50 transition-colors whitespace-nowrap justify-center">
                 <Briefcase className="w-3.5 h-3.5" /> Browse Tasks
               </Link>
             </div>
@@ -91,7 +97,7 @@ export default function StudentDashboard() {
         </div>
 
         {/* Assignment Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className={`grid grid-cols-2 lg:grid-cols-4 ${responsiveClasses.gapMd}`}>
           {[
             { label: 'Assigned Tasks', value: assignmentStats.total, icon: Briefcase, color: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' },
             { label: 'Active', value: assignmentStats.active, icon: Clock, color: 'text-amber-600 bg-amber-50 dark:bg-amber-900/20' },
@@ -108,7 +114,22 @@ export default function StudentDashboard() {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className={`grid grid-cols-1 lg:grid-cols-3 ${responsiveClasses.gapMd}`}>
+          {/* Announcements */}
+          {announcements.length > 0 && (
+            <div className="lg:col-span-3">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-semibold text-gray-900 dark:text-white">Announcements</h2>
+                <Link to="/notifications" className="text-xs text-blue-600 hover:text-blue-700 font-medium">View all →</Link>
+              </div>
+              <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 ${responsiveClasses.gapMd}`}>
+                {announcements.slice(0, 3).map((a) => (
+                  <AnnouncementCard key={a.id} announcement={a} />
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* My Assignments */}
           <div className="lg:col-span-2 space-y-5">
             <div className="bg-card border border-border rounded-2xl p-5">

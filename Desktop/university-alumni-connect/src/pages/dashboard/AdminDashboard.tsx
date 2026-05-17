@@ -15,6 +15,7 @@ import { supabase } from '@/lib/supabase/client'
 import type { User, DashboardStats, Task } from '@/lib/types'
 import toast from 'react-hot-toast'
 import { formatDistanceToNow } from 'date-fns'
+import { responsiveClasses } from '@/lib/responsive'
 
 function StatCard({ label, value, icon: Icon, color, sub }: { label: string; value: number; icon: React.ComponentType<{ className?: string }>; color: string; sub?: string }) {
   return (
@@ -144,8 +145,8 @@ export default function AdminDashboard() {
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="p-6 lg:p-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className={responsiveClasses.mobilePadding}>
+          <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 ${responsiveClasses.gapMd} mb-8`}>
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="skeleton h-32 rounded-2xl" />
             ))}
@@ -157,15 +158,15 @@ export default function AdminDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 lg:p-8 space-y-8">
+      <div className={`${responsiveClasses.mobilePadding} space-y-8`}>
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
-            <p className="text-muted-foreground text-sm">Welcome back, {dbUser?.full_name?.split(' ')[0]}. Here&apos;s what&apos;s happening.</p>
+            <h1 className={`${responsiveClasses.heading2} font-bold text-gray-900 dark:text-white`}>Admin Dashboard</h1>
+            <p className="text-muted-foreground text-sm mt-1">Welcome back, {dbUser?.full_name?.split(' ')[0]}. Here&apos;s what&apos;s happening.</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Link to="/dashboard/admin/approvals" className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Link to="/dashboard/admin/approvals" className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors flex-1 sm:flex-none justify-center sm:justify-start">
               <UserCheck className="w-4 h-4" />
               <span className="hidden sm:block">Manage Approvals</span>
               {stats && stats.pending_requests > 0 && (
@@ -179,7 +180,7 @@ export default function AdminDashboard() {
 
         {/* Stats Grid */}
         {stats && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 ${responsiveClasses.gapMd}`}>
             <StatCard label="Total Alumni" value={stats.total_alumni} icon={GraduationCap} color="bg-blue-100 dark:bg-blue-900/30 text-blue-600" sub="+12 this month" />
             <StatCard label="Active Students" value={stats.total_students} icon={Users} color="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600" sub="+8 this month" />
             <StatCard label="Pending Approvals" value={stats.pending_requests} icon={Clock} color="bg-amber-100 dark:bg-amber-900/30 text-amber-600" />
@@ -189,7 +190,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className={`grid grid-cols-1 lg:grid-cols-2 ${responsiveClasses.gapMd}`}>
           {/* Pending Approvals */}
           <div className="bg-card border border-border rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
@@ -259,8 +260,8 @@ export default function AdminDashboard() {
             {[
               { label: 'Approve Users', href: '/dashboard/admin/approvals', icon: UserCheck, color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' },
               { label: 'Manage Users', href: '/dashboard/admin/users', icon: Users, color: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' },
-              { label: 'Create Event', href: '/events/new', icon: Calendar, color: 'text-violet-600 bg-violet-50 dark:bg-violet-900/20' },
-              { label: 'View Community', href: '/community', icon: Shield, color: 'text-orange-600 bg-orange-50 dark:bg-orange-900/20' },
+              { label: 'Manage Tasks', href: '/dashboard/admin/tasks', icon: Briefcase, color: 'text-violet-600 bg-violet-50 dark:bg-violet-900/20' },
+              { label: 'Create Event', href: '/events/new', icon: Calendar, color: 'text-orange-600 bg-orange-50 dark:bg-orange-900/20' },
             ].map(({ label, href, icon: Icon, color }) => (
               <Link key={href} to={href} className={`flex flex-col items-center gap-2 p-4 rounded-xl ${color} border border-border hover:shadow-sm transition-all`}>
                 <Icon className="w-5 h-5" />

@@ -4,7 +4,7 @@ import type {
   User, AlumniProfile, StudentProfile, Task, TaskAssignment,
   Thread, ThreadReply, Event, EventRSVP, Notification,
   Conversation, DirectMessage, DashboardStats, FilterOptions,
-  PaginatedResponse,
+  PaginatedResponse, TaskApproval, Announcement,
 } from '@/lib/types'
 
 // ============================================================
@@ -154,10 +154,11 @@ export const profileQueries = {
     return data
   },
 
+
   async upsertAlumniProfile(data: Partial<AlumniProfile>): Promise<AlumniProfile> {
     const { data: result, error } = await supabase
       .from('alumni_profiles')
-      .upsert(data)
+      .upsert(data, { onConflict: 'user_id' })
       .select()
       .single()
     if (error) throw error
@@ -167,7 +168,7 @@ export const profileQueries = {
   async upsertStudentProfile(data: Partial<StudentProfile>): Promise<StudentProfile> {
     const { data: result, error } = await supabase
       .from('student_profiles')
-      .upsert(data)
+      .upsert(data, { onConflict: 'user_id' })
       .select()
       .single()
     if (error) throw error
@@ -248,6 +249,27 @@ export const taskQueries = {
     })
     if (error) throw error
     return data || []
+  },
+
+  async getTasksNeedingApproval(): Promise<Task[]> {
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*, alumni:users!posted_by(id, full_name, profile_picture_url, email)')
+      .eq('status', 'open')
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    return data || []
+  },
+
+  async bulkAssignToStudents(taskId: string, studentIds: string[], adminId: string): Promise<void> {
+    const assignments = studentIds.map(studentId => ({
+      task_id: taskId,
+      student_id: studentId,
+      assigned_by: adminId,
+    }))
+    const { error } = await supabase.from('task_assignments').insert(assignments)
+    if (error) throw error
+    await supabase.from('tasks').update({ status: 'assigned' }).eq('id', taskId)
   },
 }
 
@@ -484,5 +506,150 @@ export const messageQueries = {
       .single()
     if (error) throw error
     return data
+  },
+}
+
+// ============================================================
+// TASK APPROVAL QUERIES
+// ============================================================
+
+export const approvalQueries = {
+  async getPendingTaskApprovals(): Promise<TaskApproval[]> {
+    const { data, error } = await supabase
+      .from('task_approvals')
+      .select('*, task:tasks(*, alumni:users(id, full_name, profile_picture_url, email)), admin:users(id, full_name)')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    return data || []
+  },
+
+  async getTaskApprovalHistory(taskId: string): Promise<TaskApproval | null> {
+    const { data, error } = await supabase
+      .from('task_approvals')
+      .select('*, admin:users(id, full_name)')
+      .eq('task_id', taskId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+    if (error) return null
+    return data
+  },
+
+  async approveTask(taskId: string, adminId: string, notes?: string, taskUpdates?: Partial<Task>): Promise<TaskApproval> {
+    const { data, error } = await supabase
+      .from('task_approvals')
+      .upsert({
+        task_id: taskId,
+        admin_id: adminId,
+        status: 'approved',
+        notes,
+        approved_at: new Date().toISOString(),
+      }, { onConflict: 'task_id' })
+      .select()
+      .single()
+    if (error) throw error
+
+    // Update task status to approved + optional admin updates
+    await supabase.from('tasks').update({ status: 'approved', ...(taskUpdates || {}) }).eq('id', taskId)
+
+    return data
+  },
+
+  async rejectTask(taskId: string, adminId: string, notes?: string, taskUpdates?: Partial<Task>): Promise<TaskApproval> {
+    const { data, error } = await supabase
+      .from('task_approvals')
+      .upsert({
+        task_id: taskId,
+        admin_id: adminId,
+        status: 'rejected',
+        notes,
+      }, { onConflict: 'task_id' })
+      .select()
+      .single()
+    if (error) throw error
+
+    // Update task status to rejected + optional admin updates
+    await supabase.from('tasks').update({ status: 'rejected', ...(taskUpdates || {}) }).eq('id', taskId)
+
+    return data
+  },
+
+  async createTaskApproval(taskId: string, adminId?: string | null): Promise<TaskApproval> {
+    const { data, error } = await supabase
+      .from('task_approvals')
+      .upsert({
+        task_id: taskId,
+        admin_id: adminId ?? null,
+        status: 'pending',
+        notes: null,
+        approved_at: null,
+      }, { onConflict: 'task_id' })
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+}
+
+// ============================================================
+// ANNOUNCEMENT QUERIES
+// ============================================================
+
+export const announcementQueries = {
+  async getAnnouncements(includeExpired = false): Promise<Announcement[]> {
+    let query = supabase
+      .from('announcements')
+      .select('*, admin:users(id, full_name, profile_picture_url)')
+      .order('is_pinned', { ascending: false })
+      .order('created_at', { ascending: false })
+    
+    if (!includeExpired) {
+      query = query.or(`expires_at.is.null,expires_at.gte.${new Date().toISOString()}`)
+    }
+    
+    const { data, error } = await query
+    if (error) throw error
+    return data || []
+  },
+
+  async getAnnouncementById(id: string): Promise<Announcement | null> {
+    const { data, error } = await supabase
+      .from('announcements')
+      .select('*, admin:users(id, full_name, profile_picture_url)')
+      .eq('id', id)
+      .single()
+    if (error) return null
+    return data
+  },
+
+  async createAnnouncement(announcement: Partial<Announcement>): Promise<Announcement> {
+    const { data, error } = await supabase
+      .from('announcements')
+      .insert(announcement)
+      .select('*, admin:users(id, full_name, profile_picture_url)')
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  async updateAnnouncement(id: string, updates: Partial<Announcement>): Promise<Announcement> {
+    const { data, error } = await supabase
+      .from('announcements')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select('*, admin:users(id, full_name, profile_picture_url)')
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  async deleteAnnouncement(id: string): Promise<void> {
+    const { error } = await supabase.from('announcements').delete().eq('id', id)
+    if (error) throw error
+  },
+
+  async togglePin(id: string, isPinned: boolean): Promise<Announcement> {
+    return this.updateAnnouncement(id, { is_pinned: isPinned })
   },
 }

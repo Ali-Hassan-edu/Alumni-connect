@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   GraduationCap, LayoutDashboard, Users, MessageSquare, Calendar,
   Bell, User, LogOut, Menu, X, Sun, Moon, Briefcase,
-  ChevronDown, Shield, ClipboardList, Network
+  ChevronDown, Shield, ClipboardList, Network, Megaphone
 } from 'lucide-react'
 import { signOutUser } from '@/lib/firebase/auth'
 import { useAuthStore } from '@/lib/stores/authStore'
@@ -28,13 +28,15 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/messages',                   label: 'Messages',        icon: Network,         roles: ['super_admin','alumni','student'] },
   { to: '/notifications',              label: 'Notifications',   icon: Bell,            roles: ['super_admin','alumni','student'] },
   { to: '/dashboard/admin/users',      label: 'User Management', icon: Users,           roles: ['super_admin'] },
-  { to: '/dashboard/admin/approvals',  label: 'Approvals',       icon: ClipboardList,   roles: ['super_admin'] },
+  { to: '/dashboard/admin/approvals',  label: 'User Approvals',  icon: ClipboardList,   roles: ['super_admin'] },
+  { to: '/dashboard/admin/task-approvals', label: 'Task Approvals', icon: Briefcase, roles: ['super_admin'] },
+  { to: '/dashboard/admin/announcements', label: 'Announcements', icon: Megaphone, roles: ['super_admin'] },
 ]
 
 export function Avatar({ name, imageUrl, size = 'md' }: { name: string; imageUrl?: string | null; size?: 'sm' | 'md' | 'lg' }) {
   const s = { sm: 'w-7 h-7 text-xs', md: 'w-9 h-9 text-sm', lg: 'w-12 h-12 text-base' }
   const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
-  if (imageUrl) return <img src={imageUrl} alt={name} className={`${s[size]} rounded-full object-cover flex-shrink-0`} />
+  if (imageUrl) return <img src={imageUrl} alt={name} className={`${s[size]} rounded-full object-cover flex-shrink-0`} loading="lazy" />
   return (
     <div className={`${s[size]} rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 flex items-center justify-center font-bold flex-shrink-0`}>
       {initials}
@@ -155,36 +157,66 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      {/* Desktop sidebar */}
-      <aside className="hidden lg:flex lg:flex-col w-60 shrink-0 border-r border-border bg-card">
+      {/* Desktop sidebar - fixed width, always visible on lg+ */}
+      <aside className="hidden md:flex md:flex-col w-60 shrink-0 border-r border-border bg-card">
         <SidebarContent />
       </aside>
 
-      {/* Mobile sidebar */}
+      {/* Mobile sidebar drawer with backdrop */}
       {sidebarOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div className="fixed inset-0 bg-black/40" onClick={() => setSidebarOpen(false)} />
-          <aside className="relative w-64 bg-card border-r border-border flex flex-col">
-            <button onClick={() => setSidebarOpen(false)} className="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-accent z-10">
-              <X className="w-4 h-4" />
+        <>
+          {/* Backdrop - click to close, smooth fade */}
+          <div
+            className="fixed inset-0 bg-black/40 z-40 md:hidden transition-opacity duration-200 fade-in"
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
+          />
+
+          {/* Drawer - slides in from left with smooth animation */}
+          <aside className="fixed top-0 left-0 bottom-0 w-64 sm:w-72 bg-card border-r border-border flex flex-col z-50 md:hidden transition-transform duration-300 ease-out transform translate-x-0 slide-in-left">
+            {/* Close button - positioned in top right corner, touch-friendly */}
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="absolute top-4 right-4 p-2 rounded-lg hover:bg-accent transition-colors z-10"
+              aria-label="Close sidebar"
+            >
+              <X className="w-5 h-5" />
             </button>
-            <SidebarContent />
+
+            {/* Sidebar content with top padding for close button */}
+            <div className="pt-12">
+              <SidebarContent />
+            </div>
           </aside>
-        </div>
+        </>
       )}
 
-      {/* Main */}
+      {/* Main content area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Mobile topbar */}
-        <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-card">
-          <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg hover:bg-accent">
+        {/* Mobile topbar - visible only on mobile */}
+        <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-card">
+          {/* Hamburger menu button */}
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 rounded-lg hover:bg-accent transition-colors"
+            aria-label="Open sidebar"
+            aria-expanded={sidebarOpen}
+          >
             <Menu className="w-5 h-5" />
           </button>
+
+          {/* Logo/title */}
           <div className="flex items-center gap-2">
             <GraduationCap className="w-5 h-5 text-blue-600" />
             <span className="font-bold text-sm">Alumni Connect</span>
           </div>
-          <Link to="/notifications" className="relative p-2 rounded-lg hover:bg-accent">
+
+          {/* Notifications link */}
+          <Link
+            to="/notifications"
+            className="relative p-2 rounded-lg hover:bg-accent transition-colors"
+            aria-label="Notifications"
+          >
             <Bell className="w-5 h-5" />
             {unreadCount > 0 && (
               <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold">
@@ -194,6 +226,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </Link>
         </header>
 
+        {/* Main content */}
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>
