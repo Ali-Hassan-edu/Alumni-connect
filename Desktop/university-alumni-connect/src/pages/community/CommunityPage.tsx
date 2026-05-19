@@ -110,13 +110,12 @@ export default function CommunityPage() {
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
 
-  const loadThreads = useCallback(async (reset = false) => {
+  const loadThreads = useCallback(async (pageToLoad: number, reset = false) => {
     setIsLoading(true)
-    const currentPage = reset ? 1 : page
     const result = await threadQueries.getThreads({
       post_type: filter !== 'all' ? filter as PostType : undefined,
       search: search || undefined,
-      page: currentPage,
+      page: pageToLoad,
       limit: 15,
     })
     if (reset) {
@@ -124,18 +123,19 @@ export default function CommunityPage() {
       setPage(1)
     } else {
       setThreads(prev => [...prev, ...result.data])
+      setPage(pageToLoad)
     }
     setHasMore(result.data.length === 15)
     setIsLoading(false)
-  }, [filter, search, page])
-
-  useEffect(() => {
-    loadThreads(true)
   }, [filter, search])
 
+  useEffect(() => {
+    loadThreads(1, true)
+  }, [filter, search, loadThreads])
+
   const loadMore = () => {
-    setPage(p => p + 1)
-    loadThreads(false)
+    const nextPage = page + 1
+    loadThreads(nextPage)
   }
 
   return (

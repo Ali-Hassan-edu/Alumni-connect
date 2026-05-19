@@ -40,24 +40,31 @@ export default function NewEventPage() {
         event_type: data.event_type as import('@/lib/types').EventType,
       })
 
-      // Notify all approved users
-      const allUsers = await userQueries.getAllUsers({ status: 'approved', limit: 500 })
-      if (allUsers.data.length > 0) {
-        await notificationQueries.sendBulkNotification(
-          allUsers.data.map(u => u.id),
-          {
-            type: 'event_created',
-            title: `📅 New Event: ${data.title}`,
-            message: `A new ${data.event_type.replace('_', ' ')} has been scheduled. Check it out!`,
-            link: `/events/${event.id}`,
-          }
-        )
+      // Notify all approved alumni and students
+      try {
+        const recipientIds = await userQueries.getApprovedUserIdsByRoles(['alumni', 'student'])
+        if (recipientIds.length > 0) {
+          await notificationQueries.sendBulkNotification(
+            recipientIds,
+            {
+              type: 'event_created',
+              title: `📅 New Event: ${data.title}`,
+              message: `A new ${data.event_type.replace('_', ' ')} has been scheduled. Check it out!`,
+              link: `/events/${event.id}`,
+            }
+          )
+        }
+      } catch (notifyError) {
+        console.error('Failed to send notifications:', notifyError)
+        // Don't fail the event creation if notifications fail
       }
 
-      toast.success('Event created and all users notified!')
+      toast.success('Event created and users notified!')
       navigate(`/events/${event.id}`)
-    } catch {
-      toast.error('Failed to create event.')
+    } catch (error) {
+      console.error('Failed to create event:', error)
+      const message = error instanceof Error ? error.message : ''
+      toast.error(message ? `Failed to create event: ${message}` : 'Failed to create event.')
     } finally {
       setIsLoading(false)
     }

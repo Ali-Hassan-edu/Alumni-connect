@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { useAuthStore } from '@/lib/stores/authStore'
-import { announcementQueries } from '@/lib/supabase/queries'
+import { announcementQueries, notificationQueries, userQueries } from '@/lib/supabase/queries'
 import type { Announcement, AnnouncementPriority } from '@/lib/types'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
@@ -22,6 +22,7 @@ const announcementFormSchema = z.object({
   content: z.string().min(10, 'Content must be at least 10 characters').max(5000, 'Content must be less than 5000 characters'),
   priority: z.enum(['low', 'medium', 'high'] as const, { errorMap: () => ({ message: 'Select a valid priority' }) }),
   is_pinned: z.boolean().default(false),
+  occurs_at: z.string().optional().or(z.literal('')),
   expires_at: z.string().optional().or(z.literal('')),
 })
 
@@ -70,25 +71,28 @@ function AnnouncementForm({
       content: editingAnnouncement.content,
       priority: editingAnnouncement.priority,
       is_pinned: editingAnnouncement.is_pinned,
+      occurs_at: editingAnnouncement.occurs_at || '',
       expires_at: editingAnnouncement.expires_at || '',
     } : {
       priority: 'medium',
       is_pinned: false,
+      occurs_at: '',
       expires_at: '',
     },
   })
 
   useEffect(() => {
     if (editingAnnouncement) {
-      reset({
-        title: editingAnnouncement.title,
-        content: editingAnnouncement.content,
-        priority: editingAnnouncement.priority,
-        is_pinned: editingAnnouncement.is_pinned,
-        expires_at: editingAnnouncement.expires_at || '',
-      })
-    }
-  }, [editingAnnouncement, reset])
+        reset({
+          title: editingAnnouncement.title,
+          content: editingAnnouncement.content,
+          priority: editingAnnouncement.priority,
+          is_pinned: editingAnnouncement.is_pinned,
+          occurs_at: editingAnnouncement.occurs_at || '',
+          expires_at: editingAnnouncement.expires_at || '',
+        })
+      }
+    }, [editingAnnouncement, reset])
 
   const isPinned = watch('is_pinned')
 
@@ -123,7 +127,7 @@ function AnnouncementForm({
       </div>
 
       {/* Grid: Priority & Expiry */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Priority */}
         <div>
           <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
@@ -138,6 +142,19 @@ function AnnouncementForm({
             <option value="high">High</option>
           </select>
           {errors.priority && <p className="text-red-500 text-sm mt-1">{errors.priority.message}</p>}
+        </div>
+
+        {/* Occurrence Date */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
+            Occurs At (Optional)
+          </label>
+          <input
+            {...register('occurs_at')}
+            type="datetime-local"
+            className="w-full px-4 py-2 rounded-lg border border-input bg-background dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+          />
+          {errors.occurs_at && <p className="text-red-500 text-sm mt-1">{errors.occurs_at.message}</p>}
         </div>
 
         {/* Expiry Date */}
@@ -274,6 +291,9 @@ function AnnouncementCard({
         </div>
         <div className="text-xs text-muted-foreground text-right">
           Created: {format(new Date(announcement.created_at), 'MMM d, yyyy h:mm a')}
+          {announcement.occurs_at && (
+            <div>Occurs: {format(new Date(announcement.occurs_at), 'MMM d, yyyy h:mm a')}</div>
+          )}
           {announcement.expires_at && (
             <div>Expires: {format(new Date(announcement.expires_at), 'MMM d, yyyy h:mm a')}</div>
           )}
@@ -387,6 +407,7 @@ export function AdminAnnouncementsPage() {
 
       const announcementData = {
         ...data,
+        occurs_at: data.occurs_at ? new Date(data.occurs_at).toISOString() : undefined,
         expires_at: data.expires_at ? new Date(data.expires_at).toISOString() : undefined,
         admin_id: dbUser.id,
       }
@@ -395,7 +416,16 @@ export function AdminAnnouncementsPage() {
         await announcementQueries.updateAnnouncement(editingAnnouncement.id, announcementData)
         toast.success('Announcement updated!')
       } else {
-        await announcementQueries.createAnnouncement(announcementData)
+        const created = await announcementQueries.createAnnouncement(announcementData)
+        const recipientIds = await userQueries.getApprovedUserIdsByRoles(['alumni', 'student'])
+        if (recipientIds.length > 0) {
+          await notificationQueries.sendBulkNotification(recipientIds, {
+            type: 'announcement',
+            title: `📢 ${created.title}`,
+            message: created.content.length > 120 ? `${created.content.slice(0, 120)}...` : created.content,
+            link: '/dashboard',
+          })
+        }
         toast.success('Announcement created!')
       }
 

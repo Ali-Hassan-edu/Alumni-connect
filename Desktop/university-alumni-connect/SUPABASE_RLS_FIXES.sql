@@ -19,6 +19,9 @@ ALTER TABLE thread_votes DISABLE ROW LEVEL SECURITY;
 -- Disable RLS on events table
 ALTER TABLE events DISABLE ROW LEVEL SECURITY;
 
+-- Disable RLS on announcements table
+ALTER TABLE announcements DISABLE ROW LEVEL SECURITY;
+
 -- Disable RLS on event_rsvps table
 ALTER TABLE event_rsvps DISABLE ROW LEVEL SECURITY;
 
@@ -32,46 +35,27 @@ ALTER TABLE direct_messages DISABLE ROW LEVEL SECURITY;
 -- STEP 2: CREATE SKILL-BASED TASK ASSIGNMENT FUNCTION
 -- ============================================================================
 
+-- Drop old function signature first to avoid return-type conflicts
+DROP FUNCTION IF EXISTS find_matching_students(TEXT[], INTEGER);
+DROP FUNCTION IF EXISTS find_matching_students(TEXT[], UUID, INT);
+
 -- This function finds matching students for task assignment based on skills
-CREATE OR REPLACE FUNCTION find_matching_students(
-  p_required_skills TEXT[],
-  p_exclude_student_id UUID DEFAULT NULL,
-  p_limit INT DEFAULT 10
-)
-RETURNS TABLE (
-  student_id UUID,
-  full_name TEXT,
-  email TEXT,
-  matching_skills TEXT[],
-  match_percentage NUMERIC
-) AS $$
+CREATE OR REPLACE FUNCTION find_matching_students(task_skills TEXT[], limit_count INTEGER DEFAULT 10)
+RETURNS TABLE(id UUID, full_name TEXT, email TEXT, profile_picture_url TEXT, skills TEXT[], match_percentage NUMERIC) AS $$
 BEGIN
   RETURN QUERY
-  SELECT 
-    s.id,
-    s.full_name,
-    s.email,
-    array_agg(DISTINCT sk.name) FILTER (WHERE sk.name = ANY(p_required_skills)) AS matching_skills,
-    ROUND(
-      (COUNT(DISTINCT CASE WHEN sk.name = ANY(p_required_skills) THEN sk.id END)::NUMERIC / 
-       array_length(p_required_skills, 1)::NUMERIC) * 100,
-      2
-    ) AS match_percentage
-  FROM students s
-  LEFT JOIN student_skills ss ON s.id = ss.student_id
-  LEFT JOIN skills sk ON ss.skill_id = sk.id
-  WHERE 
-    (p_exclude_student_id IS NULL OR s.id != p_exclude_student_id)
-    AND s.is_active = true
-  GROUP BY s.id, s.full_name, s.email
-  HAVING COUNT(DISTINCT CASE WHEN sk.name = ANY(p_required_skills) THEN sk.id END) > 0
-  ORDER BY match_percentage DESC, s.full_name ASC
-  LIMIT p_limit;
+    SELECT u.id, u.full_name, u.email, u.profile_picture_url, sp.skills,
+      ROUND(((SELECT COUNT(*) FROM unnest(sp.skills) s WHERE s = ANY(task_skills))::NUMERIC / GREATEST(array_length(task_skills, 1), 1)::NUMERIC) * 100, 1) AS match_percentage
+    FROM users u
+    JOIN student_profiles sp ON u.id = sp.user_id
+    WHERE u.account_status = 'approved' AND u.role = 'student' AND sp.skills && task_skills
+    ORDER BY match_percentage DESC
+    LIMIT limit_count;
 END;
 $$ LANGUAGE plpgsql;
 
 -- Grant execute permission to authenticated users
-GRANT EXECUTE ON FUNCTION find_matching_students(TEXT[], UUID, INT) TO authenticated;
+GRANT EXECUTE ON FUNCTION find_matching_students(TEXT[], INTEGER) TO authenticated;
 
 -- ============================================================================
 -- VERIFICATION STEPS (Run these to verify RLS is disabled)
@@ -88,6 +72,7 @@ AND tablename IN (
   'thread_replies', 
   'thread_votes', 
   'events', 
+  'announcements',
   'event_rsvps', 
   'conversations', 
   'direct_messages'

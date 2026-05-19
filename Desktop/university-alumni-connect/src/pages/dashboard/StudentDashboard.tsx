@@ -39,7 +39,7 @@ export default function StudentDashboard() {
       supabase.from('events').select('*').eq('is_published', true).gte('event_date', new Date().toISOString()).order('event_date').limit(3),
       supabase.from('student_profiles').select('*').eq('user_id', dbUser.id).single(),
       supabase.from('tasks').select('*, alumni:users(full_name)').eq('status', 'approved').order('created_at', { ascending: false }).limit(4),
-      announcementQueries.getAnnouncements(),
+      announcementQueries.getAnnouncements(false, 6),
     ])
     setAssignments((assignRes.data as unknown as TaskAssignment[]) || [])
     setRecentThreads((threadsRes.data as unknown as Thread[]) || [])

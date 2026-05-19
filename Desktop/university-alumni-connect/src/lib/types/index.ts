@@ -6,7 +6,7 @@ export type UserRole = 'super_admin' | 'alumni' | 'student'
 export type AccountStatus = 'pending' | 'approved' | 'rejected' | 'blocked'
 export type TaskStatus = 'pending' | 'open' | 'approved' | 'assigned' | 'in_progress' | 'completed' | 'cancelled' | 'rejected'
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
-export type EventType = 'meetup' | 'seminar' | 'workshop' | 'get_together' | 'career_fair' | 'other'
+export type EventType = 'alumni_meetup' | 'seminar' | 'workshop' | 'get_together' | 'career_fair' | 'webinar' | 'other'
 export type NotificationType =
   | 'account_approved'
   | 'account_rejected'
@@ -408,6 +408,7 @@ export interface Announcement {
   content: string
   priority: AnnouncementPriority
   is_pinned: boolean
+  occurs_at?: string
   expires_at?: string
   created_at: string
   updated_at: string
@@ -419,5 +420,6 @@ export interface AnnouncementForm {
   content: string
   priority: AnnouncementPriority
   is_pinned: boolean
+  occurs_at?: string
   expires_at?: string
 }

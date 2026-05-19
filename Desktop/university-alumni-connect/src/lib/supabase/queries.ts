@@ -1,7 +1,7 @@
 // src/lib/supabase/queries.ts
 import { supabase } from './client'
 import type {
-  User, AlumniProfile, StudentProfile, Task, TaskAssignment,
+  User, UserRole, AlumniProfile, StudentProfile, Task, TaskAssignment,
   Thread, ThreadReply, Event, EventRSVP, Notification,
   Conversation, DirectMessage, DashboardStats, FilterOptions,
   PaginatedResponse, TaskApproval, Announcement,
@@ -17,7 +17,7 @@ export const userQueries = {
       .from('users')
       .select('*, department:departments(*)')
       .eq('firebase_uid', firebaseUid)
-      .single()
+      .maybeSingle()
     if (error) return null
     return data
   },
@@ -27,7 +27,7 @@ export const userQueries = {
       .from('users')
       .select('*, department:departments(*)')
       .eq('id', id)
-      .single()
+      .maybeSingle()
     if (error) return null
     return data
   },
@@ -107,6 +107,16 @@ export const userQueries = {
       .order('full_name', { ascending: true })
     if (error) throw error
     return data || []
+  },
+
+  async getApprovedUserIdsByRoles(roles: UserRole[]): Promise<string[]> {
+    const { data, error } = await supabase
+      .from('users')
+      .select('id')
+      .eq('account_status', 'approved')
+      .in('role', roles)
+    if (error) throw error
+    return (data || []).map(row => row.id)
   },
 
   async searchUsers(query: string, currentUserId: string): Promise<User[]> {
@@ -597,7 +607,7 @@ export const approvalQueries = {
 // ============================================================
 
 export const announcementQueries = {
-  async getAnnouncements(includeExpired = false): Promise<Announcement[]> {
+  async getAnnouncements(includeExpired = false, limit?: number): Promise<Announcement[]> {
     let query = supabase
       .from('announcements')
       .select('*, admin:users(id, full_name, profile_picture_url)')
@@ -606,6 +616,9 @@ export const announcementQueries = {
     
     if (!includeExpired) {
       query = query.or(`expires_at.is.null,expires_at.gte.${new Date().toISOString()}`)
+    }
+    if (limit) {
+      query = query.limit(limit)
     }
     
     const { data, error } = await query

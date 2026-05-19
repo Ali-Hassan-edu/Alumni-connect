@@ -49,10 +49,7 @@ function AlumniForm({ depts }: { depts: Dept[] }) {
     setLoading(true)
     try {
       const cred = await signUpWithEmail(data.email, data.password, data.full_name)
-      let deptId = data.department_id
-      const found = depts.find(d => d.id === deptId)
-      if (!found) { const { data: d } = await supabase.from('departments').select('id').eq('id', deptId).single(); if (d) deptId = d.id }
-      const dbUser = await userQueries.createUser({ firebase_uid: cred.user.uid, email: data.email, full_name: data.full_name, role: 'alumni', account_status: 'pending', registration_number: data.registration_number, department_id: deptId, phone: data.phone, linkedin_url: data.linkedin_url || undefined, short_bio: data.short_bio || undefined, is_email_verified: false })
+      const dbUser = await userQueries.createUser({ firebase_uid: cred.user.uid, email: data.email, full_name: data.full_name, role: 'alumni', account_status: 'pending', registration_number: data.registration_number, department_id: data.department_id, phone: data.phone, linkedin_url: data.linkedin_url || undefined, short_bio: data.short_bio || undefined, is_email_verified: false })
       if (!dbUser) throw new Error('Failed')
       await supabase.from('alumni_profiles').insert({ user_id: dbUser.id, batch: data.batch, passing_year: parseInt(data.passing_year), current_company: data.current_company || null, job_title: data.job_title || null, skills: data.skills })
       toast.success('Account created! Verify your email.'); navigate('/auth/verify-email')
@@ -160,11 +157,41 @@ function StudentForm({ depts }: { depts: Dept[] }) {
 export default function SignupPage() {
   const [searchParams] = useSearchParams()
   const [role, setRole] = useState<Role>((searchParams.get('role') as Role) || 'student')
-  const [depts, setDepts] = useState<Dept[]>([{id:'a1b2c3d4-0000-0000-0000-000000000001',name:'Computer Science',code:'CS'},{id:'a1b2c3d4-0000-0000-0000-000000000002',name:'Software Engineering',code:'SE'}])
+  const [depts, setDepts] = useState<Dept[]>([])
+  const [deptError, setDeptError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Keep hardcoded departments - only CS and SE
-    // Don't override with database to ensure consistency
+    let isMounted = true
+    const loadDepartments = async () => {
+      const { data, error } = await supabase
+        .from('departments')
+        .select('id,name,code')
+        .order('name', { ascending: true })
+
+      if (!isMounted) return
+
+      if (error) {
+        setDeptError('Departments are unavailable right now. Please try again later.')
+        setDepts([])
+        return
+      }
+
+      const all = data || []
+      const preferred = all.filter(d => ['CS', 'SE'].includes(d.code))
+      const finalList = preferred.length > 0 ? preferred : all
+
+      if (finalList.length === 0) {
+        setDeptError('Departments are not configured yet. Please contact an admin.')
+        setDepts([])
+        return
+      }
+
+      setDeptError(null)
+      setDepts(finalList)
+    }
+
+    loadDepartments()
+    return () => { isMounted = false }
   }, [])
 
   return (
@@ -185,6 +212,11 @@ export default function SignupPage() {
             ))}
           </div>
         </div>
+        {deptError && (
+          <div className="mb-6 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-xs sm:text-sm text-amber-700 dark:text-amber-400">
+            {deptError}
+          </div>
+        )}
         <div className="bg-card border border-border rounded-2xl p-4 sm:p-6 lg:p-8">
           {role === 'alumni' ? <AlumniForm key="alumni" depts={depts} /> : <StudentForm key="student" depts={depts} />}
         </div>

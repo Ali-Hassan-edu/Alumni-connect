@@ -39,15 +39,20 @@ export function AnnouncementCard({ announcement }: { announcement: Announcement 
 
       <p className="text-sm text-muted-foreground line-clamp-3">{announcement.content}</p>
 
-      {announcement.expires_at && (
-        <div className="mt-3 text-xs text-muted-foreground">
-          {isExpired ? (
-            <span className="text-red-500 font-medium">Expired</span>
-          ) : (
-            <>Expires {formatDistanceToNow(new Date(announcement.expires_at), { addSuffix: true })}</>
-          )}
-        </div>
-      )}
+  <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+    {announcement.occurs_at && (
+      <div>Occurs {formatDistanceToNow(new Date(announcement.occurs_at), { addSuffix: true })}</div>
+    )}
+    {announcement.expires_at && (
+      <div>
+        {isExpired ? (
+          <span className="text-red-500 font-medium">Expired</span>
+        ) : (
+          <>Expires {formatDistanceToNow(new Date(announcement.expires_at), { addSuffix: true })}</>
+        )}
+      </div>
+    )}
+  </div>
     </div>
   )
 }

@@ -1,7 +1,7 @@
 
 
 // src/app/profile/[id]/page.tsx
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ChangeEvent } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -70,6 +70,9 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null)
+  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null)
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
 
   const isOwnProfile = dbUser?.id === id
   const isAlumni = user?.role === 'alumni'
@@ -97,6 +100,14 @@ export default function ProfilePage() {
   }
 
   useEffect(() => { if (id) loadProfile() }, [id])
+
+  useEffect(() => {
+    return () => {
+      if (profileImagePreview) {
+        URL.revokeObjectURL(profileImagePreview)
+      }
+    }
+  }, [profileImagePreview])
 
   const loadProfile = async () => {
     setIsLoading(true)
@@ -161,12 +172,44 @@ export default function ProfilePage() {
     setIsSaving(true)
 
     try {
+      let profilePictureUrl = user.profile_picture_url
+      if (profileImageFile) {
+        setIsUploadingPhoto(true)
+        try {
+          const fileExt = profileImageFile.name.split('.').pop() || 'jpg'
+          const fileName = `${Date.now()}.${fileExt}`
+          const filePath = `${user.id}/${fileName}`
+          
+          // Upload file
+          const { error: uploadError, data } = await supabase
+            .storage
+            .from('profile-pictures')
+            .upload(filePath, profileImageFile, { upsert: true })
+          
+          if (uploadError) {
+            console.error('Storage upload error:', uploadError)
+            throw new Error(`Upload failed: ${uploadError.message}`)
+          }
+          
+          // Get public URL
+          const { data: publicData } = supabase.storage.from('profile-pictures').getPublicUrl(filePath)
+          if (publicData?.publicUrl) {
+            profilePictureUrl = publicData.publicUrl
+          }
+        } catch (storageError) {
+          console.error('Profile photo upload error:', storageError)
+          toast.error(`Photo upload failed: ${storageError instanceof Error ? storageError.message : 'Unknown error'}`)
+          throw storageError
+        }
+      }
+
       // Update users table with common fields
       await userQueries.updateUser(user.id, {
         full_name: data.full_name,
         phone: data.phone || undefined,
         linkedin_url: data.linkedin_url || undefined,
         short_bio: data.short_bio || undefined,
+        profile_picture_url: profilePictureUrl || undefined,
       })
 
       // Update role-specific profile table
@@ -191,15 +234,36 @@ export default function ProfilePage() {
       }
 
       // Update local state
-      setUser(prev => prev ? { ...prev, ...data } : prev)
+      setUser(prev => prev ? { ...prev, ...data, profile_picture_url: profilePictureUrl } : prev)
+      setProfileImageFile(null)
+      setProfileImagePreview(null)
       setIsEditing(false)
       toast.success('Profile updated successfully!')
     } catch (error) {
       console.error('Error saving profile:', error)
       toast.error('Failed to update profile')
     } finally {
+      setIsUploadingPhoto(false)
       setIsSaving(false)
     }
+  }
+
+  const handlePhotoChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file.')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be 5MB or less.')
+      return
+    }
+    if (profileImagePreview) {
+      URL.revokeObjectURL(profileImagePreview)
+    }
+    setProfileImageFile(file)
+    setProfileImagePreview(URL.createObjectURL(file))
   }
 
   const handleStartChat = async () => {
@@ -242,6 +306,34 @@ export default function ProfilePage() {
             <h2 className="text-2xl font-bold mb-6">Edit Profile</h2>
 
             <form onSubmit={handleSubmit(handleSaveProfile)} className="space-y-6">
+              {/* Profile Photo */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="w-20 h-20 rounded-full border border-border overflow-hidden bg-muted flex items-center justify-center">
+                  {profileImagePreview || user.profile_picture_url ? (
+                    <img
+                      src={profileImagePreview || user.profile_picture_url}
+                      alt={user.full_name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-lg font-bold text-blue-600">
+                      {user.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium mb-2">Profile Photo</label>
+                  <input
+                    id="profile-photo"
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoChange}
+                    className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">PNG or JPG, max 5MB.</p>
+                </div>
+              </div>
+
               {/* Full Name */}
               <div>
                 <label className="block text-sm font-medium mb-2">Full Name</label>
@@ -383,10 +475,10 @@ export default function ProfilePage() {
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
-                  disabled={isSaving}
+                  disabled={isSaving || isUploadingPhoto}
                   className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
                 >
-                  {isSaving ? 'Saving...' : 'Save Changes'}
+                  {isSaving || isUploadingPhoto ? 'Saving...' : 'Save Changes'}
                 </button>
                 <button
                   type="button"

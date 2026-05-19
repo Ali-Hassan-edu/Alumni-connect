@@ -47,7 +47,10 @@ export default function NewThreadPage() {
   }
 
   const onSubmit = async (data: ThreadFormData) => {
-    if (!dbUser?.id) return
+    if (!dbUser?.id) {
+      toast.error('Please sign in again to post a thread.')
+      return
+    }
     if (data.post_type === 'announcement' && !isAdmin) {
       toast.error('Only admins can post announcements.')
       return
@@ -63,8 +66,10 @@ export default function NewThreadPage() {
       })
       toast.success('Thread posted successfully!')
       navigate(`/community/${thread.id}`)
-    } catch {
-      toast.error('Failed to post thread. Please try again.')
+    } catch (error) {
+      console.error('Failed to post thread:', error)
+      const message = error instanceof Error ? error.message : ''
+      toast.error(message ? `Failed to post thread: ${message}` : 'Failed to post thread. Please try again.')
     } finally {
       setIsLoading(false)
     }

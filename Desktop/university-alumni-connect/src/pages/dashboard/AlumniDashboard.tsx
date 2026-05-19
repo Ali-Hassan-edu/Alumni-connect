@@ -61,7 +61,7 @@ export default function AlumniDashboard() {
       supabase.from('threads').select('*, author:users(full_name, role, profile_picture_url)').order('created_at', { ascending: false }).limit(5),
       supabase.from('events').select('*').eq('is_published', true).gte('event_date', new Date().toISOString()).order('event_date').limit(3),
       supabase.from('alumni_profiles').select('*').eq('user_id', dbUser.id).single(),
-      announcementQueries.getAnnouncements(),
+      announcementQueries.getAnnouncements(false, 6),
     ])
     setMyTasks((tasksRes.data as unknown as Task[]) || [])
     setRecentThreads((threadsRes.data as unknown as Thread[]) || [])
