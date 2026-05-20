@@ -13,10 +13,11 @@ DROP POLICY IF EXISTS "Allow authenticated users to delete their own profile pic
 DROP POLICY IF EXISTS "Allow public to read profile pictures" ON storage.objects;
 
 -- ============================================================================
--- STEP 2: ENABLE RLS ON storage.objects
+-- STEP 2: ENABLE RLS ON storage.objects (if not already enabled)
 -- ============================================================================
 
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- Note: This may fail if RLS is already enabled - that's OK, just continue
+-- ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================================
 -- STEP 3: CREATE SIMPLE POLICIES FOR profile-pictures BUCKET
@@ -35,12 +36,12 @@ WITH CHECK (
 CREATE POLICY "Allow authenticated users to update profile pictures"
 ON storage.objects
 FOR UPDATE
-WITH CHECK (
+USING (
   bucket_id = 'profile-pictures'
   AND auth.role() = 'authenticated'
   AND (auth.uid()::text) = (storage.foldername(name))[1]
 )
-USING (
+WITH CHECK (
   bucket_id = 'profile-pictures'
   AND auth.role() = 'authenticated'
   AND (auth.uid()::text) = (storage.foldername(name))[1]
