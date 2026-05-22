@@ -1,10 +1,16 @@
 // src/lib/supabase/queries.ts
 import { supabase } from './client'
+import {
+  COMMUNITY_POST_AUTHOR,
+  COMMUNITY_POST_AUTHOR_WITH_DEPT,
+  COMMENT_AUTHOR,
+} from './embeds'
 import type {
-  User, UserRole, AlumniProfile, StudentProfile, Task, TaskAssignment,
+  User, UserRole, AlumniProfile, StudentProfile, Profile, Task, TaskAssignment,
   Thread, ThreadReply, Event, EventRSVP, Notification,
   Conversation, DirectMessage, DashboardStats, FilterOptions,
   PaginatedResponse, TaskApproval, Announcement,
+  CommunityPost, Comment, Like, PasswordResetRequest,
 } from '@/lib/types'
 
 // ============================================================
@@ -15,7 +21,7 @@ export const userQueries = {
   async getByFirebaseUid(firebaseUid: string): Promise<User | null> {
     const { data, error } = await supabase
       .from('users')
-      .select('*, department:departments(*)')
+      .select('*, department:departments(*), profile:profiles(*)')
       .eq('firebase_uid', firebaseUid)
       .maybeSingle()
     if (error) return null
@@ -25,7 +31,7 @@ export const userQueries = {
   async getById(id: string): Promise<User | null> {
     const { data, error } = await supabase
       .from('users')
-      .select('*, department:departments(*)')
+      .select('*, department:departments(*), profile:profiles(*)')
       .eq('id', id)
       .maybeSingle()
     if (error) return null
@@ -36,7 +42,7 @@ export const userQueries = {
     const { data, error } = await supabase
       .from('users')
       .insert(userData)
-      .select('*, department:departments(*)')
+      .select('*, department:departments(*), profile:profiles(*)')
       .single()
     if (error) throw error
     return data
@@ -47,7 +53,7 @@ export const userQueries = {
       .from('users')
       .update(updates)
       .eq('id', id)
-      .select('*, department:departments(*)')
+      .select('*, department:departments(*), profile:profiles(*)')
       .single()
     if (error) throw error
     return data
@@ -57,7 +63,7 @@ export const userQueries = {
     const { role, department_id, status, search, page = 1, limit = 20, sort_by = 'created_at', sort_order = 'desc' } = filters
     let query = supabase
       .from('users')
-      .select('*, department:departments(*)', { count: 'exact' })
+      .select('*, department:departments(*), profile:profiles(*)', { count: 'exact' })
 
     if (role) query = query.eq('role', role)
     if (department_id) query = query.eq('department_id', department_id)
@@ -78,13 +84,13 @@ export const userQueries = {
   },
 
   async getDashboardStats(): Promise<DashboardStats> {
-    const [alumni, students, pending, tasks, events, threads] = await Promise.all([
+    const [alumni, students, pending, tasks, events, posts] = await Promise.all([
       supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'alumni').eq('account_status', 'approved'),
       supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'student').eq('account_status', 'approved'),
       supabase.from('users').select('id', { count: 'exact', head: true }).eq('account_status', 'pending'),
       supabase.from('tasks').select('id', { count: 'exact', head: true }),
       supabase.from('events').select('id', { count: 'exact', head: true }).eq('is_published', true),
-      supabase.from('threads').select('id', { count: 'exact', head: true }),
+      supabase.from('community_posts').select('id', { count: 'exact', head: true }).eq('status', 'approved'),
     ])
     return {
       total_alumni: alumni.count || 0,
@@ -93,7 +99,7 @@ export const userQueries = {
       total_tasks: tasks.count || 0,
       active_tasks: 0,
       total_events: events.count || 0,
-      total_threads: threads.count || 0,
+      total_threads: posts.count || 0,
       approved_this_month: 0,
     }
   },
@@ -101,7 +107,7 @@ export const userQueries = {
   async getAllRegisteredUsers(currentUserId: string): Promise<User[]> {
     const { data, error } = await supabase
       .from('users')
-      .select('*, department:departments(*)')
+      .select('*, department:departments(*), profile:profiles(*)')
       .neq('id', currentUserId)
       .eq('account_status', 'approved')
       .order('full_name', { ascending: true })
@@ -144,6 +150,26 @@ export const userQueries = {
 // ============================================================
 
 export const profileQueries = {
+  async getProfile(userId: string): Promise<Profile | null> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*, department:departments(*)')
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (error) return null
+    return data
+  },
+
+  async upsertProfile(data: Partial<Profile>) {
+    const { data: result, error } = await supabase
+      .from('profiles')
+      .upsert(data, { onConflict: 'user_id' })
+      .select('*, department:departments(*)')
+      .single()
+    if (error) throw error
+    return result
+  },
+
   async getAlumniProfile(userId: string): Promise<AlumniProfile | null> {
     const { data, error } = await supabase
       .from('alumni_profiles')
@@ -377,6 +403,87 @@ export const threadQueries = {
 }
 
 // ============================================================
+// COMMUNITY POST QUERIES (Moderated)
+// ============================================================
+
+export const communityPostQueries = {
+  async getPublicPosts(filters: FilterOptions & { post_type?: string } = {}): Promise<PaginatedResponse<CommunityPost>> {
+    const { search, page = 1, limit = 20, post_type } = filters
+    let query = supabase
+      .from('community_posts')
+      .select(`*, ${COMMUNITY_POST_AUTHOR}`, { count: 'exact' })
+      .eq('status', 'approved')
+
+    if (post_type) query = query.eq('post_type', post_type)
+    if (search) query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`)
+
+    const from = (page - 1) * limit
+    query = query.order('created_at', { ascending: false }).range(from, from + limit - 1)
+
+    const { data, error, count } = await query
+    if (error) throw error
+    return { data: data || [], count: count || 0, page, limit, total_pages: Math.ceil((count || 0) / limit) }
+  },
+
+  async getPostById(id: string): Promise<CommunityPost | null> {
+    const { data, error } = await supabase
+      .from('community_posts')
+      .select(`*, ${COMMUNITY_POST_AUTHOR_WITH_DEPT}`)
+      .eq('id', id)
+      .maybeSingle()
+    if (error) return null
+    return data
+  },
+
+  async getComments(postId: string): Promise<Comment[]> {
+    const { data, error } = await supabase
+      .from('comments')
+      .select(`*, ${COMMENT_AUTHOR}`)
+      .eq('post_id', postId)
+      .order('created_at', { ascending: true })
+    if (error) return []
+    return data || []
+  },
+
+  async getLikesForPost(postId: string): Promise<Like[]> {
+    const { data, error } = await supabase
+      .from('likes')
+      .select('*')
+      .eq('post_id', postId)
+    if (error) return []
+    return data || []
+  },
+
+  async getPostsByAuthor(authorId: string, status?: 'pending' | 'approved' | 'rejected') {
+    let query = supabase
+      .from('community_posts')
+      .select(`*, ${COMMUNITY_POST_AUTHOR}`)
+      .eq('author_id', authorId)
+      .order('created_at', { ascending: false })
+    if (status) query = query.eq('status', status)
+    const { data, error } = await query
+    if (error) throw error
+    return data || []
+  },
+}
+
+// ============================================================
+// PASSWORD RESET REQUEST QUERIES
+// ============================================================
+
+export const passwordResetQueries = {
+  async getRequests(): Promise<PasswordResetRequest[]> {
+    // Use FK hint to resolve ambiguous relationship (table has user_id + admin_id both → users)
+    const { data, error } = await supabase
+      .from('password_reset_requests')
+      .select('*, user:users!password_reset_requests_user_id_fkey(id, full_name, email, role)')
+      .order('created_at', { ascending: false })
+    if (error) return []
+    return data || []
+  },
+}
+
+// ============================================================
 // EVENT QUERIES
 // ============================================================
 
@@ -384,13 +491,17 @@ export const eventQueries = {
   async getEvents(upcoming = false): Promise<Event[]> {
     let query = supabase
       .from('events')
-      .select('*, rsvp_count:event_rsvps(count)')
+      .select('*, event_rsvps(count)')
       .eq('is_published', true)
     if (upcoming) query = query.gte('event_date', new Date().toISOString())
     query = query.order('event_date', { ascending: true })
     const { data, error } = await query
     if (error) throw error
-    return data || []
+    // Normalize rsvp_count from nested aggregate
+    return (data || []).map((e: any) => ({
+      ...e,
+      rsvp_count: e.event_rsvps?.[0]?.count ?? 0,
+    }))
   },
 
   async getEventById(id: string): Promise<Event | null> {
@@ -666,3 +777,66 @@ export const announcementQueries = {
     return this.updateAnnouncement(id, { is_pinned: isPinned })
   },
 }
+
+// ============================================================
+// REPORT & CONTENT MODERATION QUERIES
+// ============================================================
+
+export const reportQueries = {
+  async getReports(): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('reports')
+      .select('*, reporter:users!reports_reporter_id_fkey(id, full_name, email, role, profile_picture_url), resolver:users!reports_resolved_by_fkey(id, full_name)')
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    return data || []
+  },
+
+  async createReport(report: {
+    reporter_id: string
+    target_type: 'post' | 'thread' | 'comment'
+    target_id: string
+    reason: string
+  }): Promise<any> {
+    const { data, error } = await supabase
+      .from('reports')
+      .insert(report)
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  async updateReportStatus(
+    id: string,
+    status: 'resolved' | 'dismissed',
+    resolvedBy: string
+  ): Promise<any> {
+    const { data, error } = await supabase
+      .from('reports')
+      .update({
+        status,
+        resolved_by: resolvedBy,
+        resolved_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  async deleteReportedContent(targetType: 'post' | 'thread' | 'comment', targetId: string): Promise<void> {
+    if (targetType === 'post') {
+      const { error } = await supabase.from('community_posts').delete().eq('id', targetId)
+      if (error) throw error
+    } else if (targetType === 'thread') {
+      const { error } = await supabase.from('threads').delete().eq('id', targetId)
+      if (error) throw error
+    } else if (targetType === 'comment') {
+      const { error } = await supabase.from('comments').delete().eq('id', targetId)
+      if (error) throw error
+    }
+  }
+}
+

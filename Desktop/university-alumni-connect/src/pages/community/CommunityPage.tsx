@@ -8,9 +8,9 @@ import {
   Star, Pin, Lock, TrendingUp, BookOpen, Briefcase, Users
 } from 'lucide-react'
 import { DashboardLayout, Avatar } from '@/components/layout/DashboardLayout'
-import { threadQueries } from '@/lib/supabase/queries'
+import { communityPostQueries } from '@/lib/supabase/queries'
 import { useAuthStore } from '@/lib/stores/authStore'
-import type { Thread, PostType } from '@/lib/types'
+import type { CommunityPost, PostType } from '@/lib/types'
 import { formatDistanceToNow } from 'date-fns'
 
 const POST_TYPE_CONFIG: Record<PostType, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
@@ -32,17 +32,17 @@ const FILTERS: { label: string; value: string }[] = [
   { label: 'Announcements', value: 'announcement' },
 ]
 
-function ThreadCard({ thread }: { thread: Thread }) {
+function ThreadCard({ thread, isPreview }: { thread: CommunityPost; isPreview: boolean }) {
   const config = POST_TYPE_CONFIG[thread.post_type]
   const Icon = config.icon
 
   return (
-    <Link to={`/community/${thread.id}`} className="thread-card block">
+    <Link to={isPreview ? '/auth/login' : `/community/${thread.id}`} className="thread-card block">
       <div className="flex items-start gap-4">
         {/* Vote count */}
         <div className="flex flex-col items-center gap-1 shrink-0 pt-1">
           <ChevronUp className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{thread.upvote_count}</span>
+          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{thread.like_count}</span>
         </div>
 
         <div className="flex-1 min-w-0">
@@ -63,7 +63,16 @@ function ThreadCard({ thread }: { thread: Thread }) {
             {thread.title}
           </h3>
 
-          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{thread.content}</p>
+          <div className={isPreview ? 'relative' : ''}>
+            <p className={`text-sm text-muted-foreground line-clamp-2 mb-3 ${isPreview ? 'blur-[1.5px]' : ''}`}>{thread.content}</p>
+            {isPreview && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-xs px-2 py-1 rounded-full bg-white/80 dark:bg-gray-900/80 border border-border text-muted-foreground">
+                  Login or Signup to read more
+                </span>
+              </div>
+            )}
+          </div>
 
           {/* Footer */}
           <div className="flex items-center justify-between">
@@ -83,7 +92,7 @@ function ThreadCard({ thread }: { thread: Thread }) {
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <MessageSquare className="w-3.5 h-3.5" />
-                {thread.reply_count}
+                {thread.comment_count}
               </span>
               <span className="flex items-center gap-1">
                 <Eye className="w-3.5 h-3.5" />
@@ -103,7 +112,8 @@ function ThreadCard({ thread }: { thread: Thread }) {
 
 export default function CommunityPage() {
   const { dbUser } = useAuthStore()
-  const [threads, setThreads] = useState<Thread[]>([])
+  const [threads, setThreads] = useState<CommunityPost[]>([])
+  const [myPosts, setMyPosts] = useState<CommunityPost[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all')
@@ -112,26 +122,40 @@ export default function CommunityPage() {
 
   const loadThreads = useCallback(async (pageToLoad: number, reset = false) => {
     setIsLoading(true)
-    const result = await threadQueries.getThreads({
-      post_type: filter !== 'all' ? filter as PostType : undefined,
-      search: search || undefined,
-      page: pageToLoad,
-      limit: 15,
-    })
-    if (reset) {
-      setThreads(result.data)
-      setPage(1)
-    } else {
-      setThreads(prev => [...prev, ...result.data])
-      setPage(pageToLoad)
+    try {
+      const result = await communityPostQueries.getPublicPosts({
+        post_type: filter !== 'all' ? filter as PostType : undefined,
+        search: search || undefined,
+        page: pageToLoad,
+        limit: 15,
+      })
+      if (reset) {
+        setThreads(result.data)
+        setPage(1)
+      } else {
+        setThreads(prev => [...prev, ...result.data])
+        setPage(pageToLoad)
+      }
+      setHasMore(result.data.length === 15)
+    } catch (err) {
+      console.error('Failed to load community posts:', err)
+      if (reset) setThreads([])
+      setHasMore(false)
+    } finally {
+      setIsLoading(false)
     }
-    setHasMore(result.data.length === 15)
-    setIsLoading(false)
   }, [filter, search])
 
   useEffect(() => {
     loadThreads(1, true)
   }, [filter, search, loadThreads])
+
+  useEffect(() => {
+    if (!dbUser?.id) return
+    communityPostQueries.getPostsByAuthor(dbUser.id)
+      .then(setMyPosts)
+      .catch(() => setMyPosts([]))
+  }, [dbUser?.id])
 
   const loadMore = () => {
     const nextPage = page + 1
@@ -147,7 +171,7 @@ export default function CommunityPage() {
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Community</h1>
             <p className="text-muted-foreground text-sm mt-1">Discussions, Q&A, opportunities — all in one place</p>
           </div>
-          {dbUser && (
+          {dbUser ? (
             <Link
               to="/community/new"
               className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors w-full sm:w-auto justify-center"
@@ -155,12 +179,44 @@ export default function CommunityPage() {
               <Plus className="w-4 h-4" />
               New Thread
             </Link>
+          ) : (
+            <Link
+              to="/auth/login"
+              className="inline-flex items-center gap-2 px-4 py-2.5 border border-border text-sm font-semibold rounded-xl transition-colors w-full sm:w-auto justify-center hover:bg-accent"
+            >
+              Login to Post
+            </Link>
           )}
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Main content */}
           <div className="flex-1 min-w-0">
+            {/* My submissions */}
+            {dbUser && myPosts.length > 0 && (
+              <div className="mb-6 bg-card border border-border rounded-2xl p-4 sm:p-5">
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Your Submissions</h3>
+                <div className="space-y-2">
+                  {myPosts.slice(0, 5).map(post => (
+                    <div key={post.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-muted/40">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{post.title}</div>
+                        {post.status === 'rejected' && post.rejection_reason && (
+                          <div className="text-xs text-red-500 mt-0.5">Rejected: {post.rejection_reason}</div>
+                        )}
+                      </div>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${
+                        post.status === 'approved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                        post.status === 'rejected' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                        'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                      }`}>
+                        {post.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* Search + Filters */}
             <div className="mb-4 space-y-3">
               <div className="relative">
@@ -215,7 +271,7 @@ export default function CommunityPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {threads.map(thread => <ThreadCard key={thread.id} thread={thread} />)}
+                {threads.map(thread => <ThreadCard key={thread.id} thread={thread} isPreview={!dbUser} />)}
                 {hasMore && (
                   <button onClick={loadMore} disabled={isLoading} className="w-full py-3 text-sm text-blue-600 hover:text-blue-700 font-medium border border-border rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors disabled:opacity-50">
                     {isLoading ? 'Loading...' : 'Load more threads'}

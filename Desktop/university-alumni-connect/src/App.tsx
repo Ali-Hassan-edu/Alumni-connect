@@ -20,6 +20,9 @@ const AdminApprovalsPage = lazy(() => import('@/pages/dashboard/AdminApprovalsPa
 const AdminUsersPage = lazy(() => import('@/pages/dashboard/AdminUsersPage'))
 const AdminTasksPage = lazy(() => import('@/pages/dashboard/AdminTasksPage'))
 const AdminTaskApprovalsPage = lazy(() => import('@/pages/dashboard/AdminTaskApprovalsPage'))
+const AdminPostModerationPage = lazy(() => import('@/pages/dashboard/AdminPostModerationPage'))
+const AdminReportsPage = lazy(() => import('@/pages/dashboard/AdminReportsPage'))
+const AdminPasswordResetPage = lazy(() => import('@/pages/dashboard/AdminPasswordResetPage'))
 const AdminAnnouncementsPage = lazy(() => import('@/pages/AdminAnnouncementsPage').then(m => ({ default: m.AdminAnnouncementsPage })))
 const AlumniDashboard = lazy(() => import('@/pages/dashboard/AlumniDashboard'))
 const StudentDashboard = lazy(() => import('@/pages/dashboard/StudentDashboard'))
@@ -100,10 +103,10 @@ function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?
 function DashboardRedirect() {
   const { dbUser } = useAuthStore()
   if (!dbUser) return <Navigate to="/auth/login" replace />
-  if (dbUser.role === 'super_admin') return <Navigate to="/dashboard/admin" replace />
-  if (dbUser.role === 'alumni') return <Navigate to="/dashboard/alumni" replace />
-  return <Navigate to="/dashboard/student" replace />
-}
+    if (dbUser.role === 'super_admin' || dbUser.role === 'sub_admin') return <Navigate to="/dashboard/admin" replace />
+    if (dbUser.role === 'alumni') return <Navigate to="/dashboard/alumni" replace />
+    return <Navigate to="/dashboard/student" replace />
+  }
 
 export default function App() {
   const { setFirebaseUser, setDbUser, setLoading, setInitialized, clearAuth } = useAuthStore()
@@ -137,7 +140,12 @@ export default function App() {
 
   return (
     <ThemeManager>
-      <BrowserRouter>
+      <BrowserRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes>
             {/* Public */}
@@ -152,12 +160,15 @@ export default function App() {
             <Route path="/dashboard" element={<ProtectedRoute><DashboardRedirect /></ProtectedRoute>} />
 
             {/* Admin */}
-            <Route path="/dashboard/admin" element={<ProtectedRoute roles={['super_admin']}><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/dashboard/admin" element={<ProtectedRoute roles={['super_admin','sub_admin']}><AdminDashboard /></ProtectedRoute>} />
             <Route path="/dashboard/admin/approvals" element={<ProtectedRoute roles={['super_admin']}><AdminApprovalsPage /></ProtectedRoute>} />
             <Route path="/dashboard/admin/task-approvals" element={<ProtectedRoute roles={['super_admin']}><AdminTaskApprovalsPage /></ProtectedRoute>} />
             <Route path="/dashboard/admin/announcements" element={<ProtectedRoute roles={['super_admin']}><AdminAnnouncementsPage /></ProtectedRoute>} />
             <Route path="/dashboard/admin/users" element={<ProtectedRoute roles={['super_admin']}><AdminUsersPage /></ProtectedRoute>} />
             <Route path="/dashboard/admin/tasks" element={<ProtectedRoute roles={['super_admin']}><AdminTasksPage /></ProtectedRoute>} />
+            <Route path="/dashboard/admin/moderation" element={<ProtectedRoute roles={['super_admin','sub_admin']}><AdminPostModerationPage /></ProtectedRoute>} />
+            <Route path="/dashboard/admin/reports" element={<ProtectedRoute roles={['super_admin','sub_admin']}><AdminReportsPage /></ProtectedRoute>} />
+            <Route path="/dashboard/admin/password-resets" element={<ProtectedRoute roles={['super_admin','sub_admin']}><AdminPasswordResetPage /></ProtectedRoute>} />
 
             {/* Alumni */}
             <Route path="/dashboard/alumni" element={<ProtectedRoute roles={['alumni']}><AlumniDashboard /></ProtectedRoute>} />
@@ -166,9 +177,9 @@ export default function App() {
             <Route path="/dashboard/student" element={<ProtectedRoute roles={['student']}><StudentDashboard /></ProtectedRoute>} />
 
             {/* Community */}
-            <Route path="/community" element={<ProtectedRoute><CommunityPage /></ProtectedRoute>} />
+            <Route path="/community" element={<CommunityPage />} />
             <Route path="/community/new" element={<ProtectedRoute><NewThreadPage /></ProtectedRoute>} />
-            <Route path="/community/:id" element={<ProtectedRoute><ThreadDetailPage /></ProtectedRoute>} />
+            <Route path="/community/:id" element={<ThreadDetailPage />} />
 
             {/* Tasks */}
             <Route path="/tasks" element={<ProtectedRoute><TasksPage /></ProtectedRoute>} />

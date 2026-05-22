@@ -1,8 +1,9 @@
+// src/components/TagInput.tsx
 import { useState } from 'react'
 import { X } from 'lucide-react'
 
 interface TagInputProps {
-  tags: string[]
+  tags: string[] | undefined
   onAdd: (tag: string) => void
   onRemove: (tag: string) => void
   placeholder?: string
@@ -10,6 +11,8 @@ interface TagInputProps {
 
 export function TagInput({ tags, onAdd, onRemove, placeholder = 'Add a tag...' }: TagInputProps) {
   const [inputValue, setInputValue] = useState('')
+  // Guard: ensure tags is always an array even if undefined is passed
+  const safeTags: string[] = Array.isArray(tags) ? tags : []
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -18,15 +21,15 @@ export function TagInput({ tags, onAdd, onRemove, placeholder = 'Add a tag...' }
         onAdd(inputValue.trim())
         setInputValue('')
       }
-    } else if (e.key === 'Backspace' && !inputValue && tags.length > 0) {
-      onRemove(tags[tags.length - 1])
+    } else if (e.key === 'Backspace' && !inputValue && safeTags.length > 0) {
+      onRemove(safeTags[safeTags.length - 1])
     }
   }
 
   return (
     <div className="w-full">
       <div className="flex flex-wrap gap-2 p-2 rounded-lg border border-border bg-background min-h-[42px] focus-within:ring-2 focus-within:ring-blue-500">
-        {tags.map(tag => (
+        {safeTags.map(tag => (
           <span
             key={tag}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg text-sm font-medium"
@@ -46,7 +49,7 @@ export function TagInput({ tags, onAdd, onRemove, placeholder = 'Add a tag...' }
           value={inputValue}
           onChange={e => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={tags.length === 0 ? placeholder : ''}
+          placeholder={safeTags.length === 0 ? placeholder : ''}
           className="flex-1 min-w-[100px] outline-none bg-transparent text-sm"
         />
       </div>

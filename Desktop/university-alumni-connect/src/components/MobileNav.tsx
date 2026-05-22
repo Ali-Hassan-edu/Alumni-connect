@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Menu, X, Home, Users, Briefcase, Calendar, MessageSquare, Settings, LogOut } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/lib/stores/authStore'
-import { supabase } from '@/lib/supabase/client'
+import { signOutUser } from '@/lib/firebase/auth'
 import { touchFriendly } from '@/lib/responsive'
 
 interface NavItem {
@@ -17,7 +17,7 @@ export default function MobileNav() {
   const [isOpen, setIsOpen] = useState(false)
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
+    await signOutUser()
     clearAuth()
     navigate('/')
   }
@@ -38,12 +38,18 @@ export default function MobileNav() {
       )
     }
 
-    if (dbUser.role === 'super_admin') {
+    if (dbUser.role === 'super_admin' || dbUser.role === 'sub_admin') {
       baseItems.push(
         { label: 'Dashboard', href: '/dashboard/admin', icon: <Settings className="w-5 h-5" /> },
-        { label: 'Users', href: '/dashboard/admin/users', icon: <Users className="w-5 h-5" /> },
-        { label: 'Approvals', href: '/dashboard/admin/approvals', icon: <Briefcase className="w-5 h-5" /> },
+        { label: 'Moderation', href: '/dashboard/admin/moderation', icon: <Users className="w-5 h-5" /> },
+        { label: 'Password Resets', href: '/dashboard/admin/password-resets', icon: <Briefcase className="w-5 h-5" /> },
       )
+      if (dbUser.role === 'super_admin') {
+        baseItems.push(
+          { label: 'Users', href: '/dashboard/admin/users', icon: <Users className="w-5 h-5" /> },
+          { label: 'Approvals', href: '/dashboard/admin/approvals', icon: <Briefcase className="w-5 h-5" /> },
+        )
+      }
     }
 
     return baseItems

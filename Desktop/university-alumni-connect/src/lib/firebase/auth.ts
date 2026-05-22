@@ -51,3 +51,8 @@ export const onAuthChange = (callback: (user: FirebaseUser | null) => void) => {
 export const getCurrentUser = (): FirebaseUser | null => {
   return auth.currentUser
 }
+
+export const getIdToken = async (): Promise<string | null> => {
+  if (!auth.currentUser) return null
+  return auth.currentUser.getIdToken()
+}

@@ -19,14 +19,16 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: '/dashboard/admin',            label: 'Dashboard',       icon: LayoutDashboard, roles: ['super_admin'] },
+  { to: '/dashboard/admin',            label: 'Dashboard',       icon: LayoutDashboard, roles: ['super_admin','sub_admin'] },
   { to: '/dashboard/alumni',           label: 'Dashboard',       icon: LayoutDashboard, roles: ['alumni'] },
   { to: '/dashboard/student',          label: 'Dashboard',       icon: LayoutDashboard, roles: ['student'] },
-  { to: '/community',                  label: 'Community',       icon: MessageSquare,   roles: ['super_admin','alumni','student'] },
-  { to: '/events',                     label: 'Events',          icon: Calendar,        roles: ['super_admin','alumni','student'] },
-  { to: '/tasks',                      label: 'Task Board',      icon: Briefcase,       roles: ['super_admin','alumni','student'] },
-  { to: '/messages',                   label: 'Messages',        icon: Network,         roles: ['super_admin','alumni','student'] },
-  { to: '/notifications',              label: 'Notifications',   icon: Bell,            roles: ['super_admin','alumni','student'] },
+  { to: '/community',                  label: 'Community',       icon: MessageSquare,   roles: ['super_admin','sub_admin','alumni','student'] },
+  { to: '/events',                     label: 'Events',          icon: Calendar,        roles: ['super_admin','sub_admin','alumni','student'] },
+  { to: '/tasks',                      label: 'Task Board',      icon: Briefcase,       roles: ['super_admin','sub_admin','alumni','student'] },
+  { to: '/messages',                   label: 'Messages',        icon: Network,         roles: ['super_admin','sub_admin','alumni','student'] },
+  { to: '/notifications',              label: 'Notifications',   icon: Bell,            roles: ['super_admin','sub_admin','alumni','student'] },
+  { to: '/dashboard/admin/moderation', label: 'Moderation',      icon: Shield,          roles: ['super_admin','sub_admin'] },
+  { to: '/dashboard/admin/password-resets', label: 'Password Resets', icon: ClipboardList, roles: ['super_admin','sub_admin'] },
   { to: '/dashboard/admin/users',      label: 'User Management', icon: Users,           roles: ['super_admin'] },
   { to: '/dashboard/admin/approvals',  label: 'User Approvals',  icon: ClipboardList,   roles: ['super_admin'] },
   { to: '/dashboard/admin/task-approvals', label: 'Task Approvals', icon: Briefcase, roles: ['super_admin'] },
@@ -92,10 +94,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto custom-scrollbar">
-        {role === 'super_admin' && (
+        {(role === 'super_admin' || role === 'sub_admin') && (
           <div className="flex items-center gap-2 px-3 py-2 mb-3 rounded-lg bg-purple-50 dark:bg-purple-900/20">
             <Shield className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-            <span className="text-xs font-semibold text-purple-700 dark:text-purple-400">Super Admin Panel</span>
+            <span className="text-xs font-semibold text-purple-700 dark:text-purple-400">
+              {role === 'super_admin' ? 'Super Admin Panel' : 'Sub Admin Panel'}
+            </span>
           </div>
         )}
         {navItems.map(({ to, label, icon: Icon }) => (

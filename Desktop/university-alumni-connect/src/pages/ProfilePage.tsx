@@ -15,31 +15,46 @@ import { TagInput } from '@/components/TagInput'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { userQueries, messageQueries, profileQueries } from '@/lib/supabase/queries'
 import { supabase } from '@/lib/supabase/client'
-import type { User, AlumniProfile, StudentProfile } from '@/lib/types'
+import type { User, AlumniProfile, StudentProfile, Department } from '@/lib/types'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
+import { uploadService } from '@/services/uploadService'
+import { profileService } from '@/services/profileService'
 
 interface ExtendedProfile {
-  // Alumni
+  // Base
+  department_id?: string
   batch?: string
+  phone?: string
+  bio?: string
+  skills?: string[]
+  experience?: string
+  portfolio_url?: string
+  linkedin_url?: string
+  github_url?: string
+  resume_url?: string
+  avatar_url?: string
+  // Alumni
   passing_year?: number
   current_company?: string
   job_title?: string
-  skills?: string[]
   achievements?: string[]
   // Student
   semester?: number
   cgpa?: number
   interests?: string[]
-  github_url?: string
-  resume_url?: string
 }
 
 // Profile edit schemas for different user types
 const baseProfileSchema = z.object({
   full_name: z.string().min(2, 'Full name must be at least 2 characters'),
+  department_id: z.string().optional().or(z.literal('')),
+  batch: z.string().optional().or(z.literal('')),
   phone: z.string().max(20, 'Phone number too long').optional().or(z.literal('')),
   linkedin_url: z.string().url('Invalid LinkedIn URL').optional().or(z.literal('')),
+  github_url: z.string().url('Invalid GitHub URL').optional().or(z.literal('')),
+  portfolio_url: z.string().url('Invalid portfolio URL').optional().or(z.literal('')),
+  experience: z.string().max(1000, 'Experience cannot exceed 1000 characters').optional().or(z.literal('')),
   short_bio: z.string().max(500, 'Bio cannot exceed 500 characters').optional().or(z.literal('')),
   skills: z.array(z.string()).min(1, 'Add at least one skill'),
 })
@@ -51,7 +66,6 @@ const alumniEditSchema = baseProfileSchema.extend({
 
 const studentEditSchema = baseProfileSchema.extend({
   interests: z.array(z.string()).min(1, 'Add at least one interest'),
-  github_url: z.string().url('Invalid GitHub URL').optional().or(z.literal('')),
   semester: z.number().min(1, 'Semester must be at least 1').max(8, 'Semester cannot exceed 8'),
   cgpa: z.number().min(0, 'CGPA cannot be negative').max(4.0, 'CGPA cannot exceed 4.0'),
 })
@@ -73,6 +87,12 @@ export default function ProfilePage() {
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null)
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null)
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
+  const [departments, setDepartments] = useState<Department[]>([])
+  const [deptError, setDeptError] = useState<string | null>(null)
+  const [resumeFile, setResumeFile] = useState<File | null>(null)
+  const [resumePath, setResumePath] = useState<string | null>(null)
+  const [resumeUrl, setResumeUrl] = useState<string | null>(null)
+  const [isUploadingResume, setIsUploadingResume] = useState(false)
 
   const isOwnProfile = dbUser?.id === id
   const isAlumni = user?.role === 'alumni'
@@ -89,10 +109,12 @@ export default function ProfilePage() {
   } = useForm<any>({
     resolver: zodResolver(schema),
     mode: 'onBlur',
+    defaultValues: { skills: [], interests: [], semester: 1, cgpa: 0 },
   })
 
-  const skillsValue = watch('skills')
-  const interestsValue = watch('interests')
+  // Always arrays — prevents TagInput crash when form not yet hydrated
+  const skillsValue: string[] = watch('skills') ?? []
+  const interestsValue: string[] = watch('interests') ?? []
   const getErrorMessage = (error: unknown): string | undefined => {
     if (!error || typeof error !== 'object' || !('message' in error)) return undefined
     const message = (error as { message?: unknown }).message
@@ -100,6 +122,26 @@ export default function ProfilePage() {
   }
 
   useEffect(() => { if (id) loadProfile() }, [id])
+
+  useEffect(() => {
+    let isMounted = true
+    const loadDepartments = async () => {
+      const { data, error } = await supabase
+        .from('departments')
+        .select('id,name,code')
+        .order('name', { ascending: true })
+      if (!isMounted) return
+      if (error) {
+        setDeptError('Departments are unavailable right now.')
+        setDepartments([])
+        return
+      }
+      setDeptError(null)
+      setDepartments(data || [])
+    }
+    loadDepartments()
+    return () => { isMounted = false }
+  }, [])
 
   useEffect(() => {
     return () => {
@@ -115,29 +157,49 @@ export default function ProfilePage() {
     setUser(userData)
 
     if (userData) {
+      const baseProfile = await profileQueries.getProfile(id)
+      setResumePath(baseProfile?.resume_url || null)
+      if (baseProfile?.resume_url) {
+        try {
+          const signed = await uploadService.getResumeUrl(baseProfile.resume_url)
+          setResumeUrl(signed.url)
+        } catch {
+          setResumeUrl(null)
+        }
+      }
+
       // Load role-specific profile
       if (userData.role === 'alumni') {
-        const { data } = await supabase.from('alumni_profiles').select('*').eq('user_id', id).single()
-        setProfile(data)
+        const { data } = await supabase.from('alumni_profiles').select('*').eq('user_id', id).maybeSingle()
+        setProfile({ ...baseProfile, ...data })
         // Initialize form with alumni data
         setValue('full_name', userData.full_name)
-        setValue('phone', userData.phone || '')
-        setValue('linkedin_url', userData.linkedin_url || '')
-        setValue('short_bio', userData.short_bio || '')
-        setValue('skills', data?.skills || [])
+        setValue('department_id', baseProfile?.department_id || userData.department_id || '')
+        setValue('batch', baseProfile?.batch || '')
+        setValue('phone', baseProfile?.phone || userData.phone || '')
+        setValue('linkedin_url', baseProfile?.linkedin_url || userData.linkedin_url || '')
+        setValue('github_url', baseProfile?.github_url || '')
+        setValue('portfolio_url', baseProfile?.portfolio_url || '')
+        setValue('experience', baseProfile?.experience || '')
+        setValue('short_bio', baseProfile?.bio || userData.short_bio || '')
+        setValue('skills', data?.skills || baseProfile?.skills || [])
         setValue('current_company', data?.current_company || '')
         setValue('job_title', data?.job_title || '')
       } else if (userData.role === 'student') {
-        const { data } = await supabase.from('student_profiles').select('*').eq('user_id', id).single()
-        setProfile(data)
+        const { data } = await supabase.from('student_profiles').select('*').eq('user_id', id).maybeSingle()
+        setProfile({ ...baseProfile, ...data })
         // Initialize form with student data
         setValue('full_name', userData.full_name)
-        setValue('phone', userData.phone || '')
-        setValue('linkedin_url', userData.linkedin_url || '')
-        setValue('short_bio', userData.short_bio || '')
-        setValue('skills', data?.skills || [])
+        setValue('department_id', baseProfile?.department_id || userData.department_id || '')
+        setValue('batch', baseProfile?.batch || '')
+        setValue('phone', baseProfile?.phone || userData.phone || '')
+        setValue('linkedin_url', baseProfile?.linkedin_url || userData.linkedin_url || '')
+        setValue('github_url', baseProfile?.github_url || data?.github_url || '')
+        setValue('portfolio_url', baseProfile?.portfolio_url || '')
+        setValue('experience', baseProfile?.experience || '')
+        setValue('short_bio', baseProfile?.bio || userData.short_bio || '')
+        setValue('skills', data?.skills || baseProfile?.skills || [])
         setValue('interests', data?.interests || [])
-        setValue('github_url', data?.github_url || '')
         setValue('semester', data?.semester || 1)
         setValue('cgpa', data?.cgpa || 0)
       }
@@ -173,29 +235,12 @@ export default function ProfilePage() {
 
     try {
       let profilePictureUrl = user.profile_picture_url
+      let resumeUrl = resumePath
       if (profileImageFile) {
         setIsUploadingPhoto(true)
         try {
-          const fileExt = profileImageFile.name.split('.').pop() || 'jpg'
-          const fileName = `${Date.now()}.${fileExt}`
-          const filePath = `${user.id}/${fileName}`
-          
-          // Upload file
-          const { error: uploadError, data } = await supabase
-            .storage
-            .from('profile-pictures')
-            .upload(filePath, profileImageFile, { upsert: true })
-          
-          if (uploadError) {
-            console.error('Storage upload error:', uploadError)
-            throw new Error(`Upload failed: ${uploadError.message}`)
-          }
-          
-          // Get public URL
-          const { data: publicData } = supabase.storage.from('profile-pictures').getPublicUrl(filePath)
-          if (publicData?.publicUrl) {
-            profilePictureUrl = publicData.publicUrl
-          }
+          const uploaded = await uploadService.uploadAvatar(profileImageFile)
+          profilePictureUrl = uploaded.url
         } catch (storageError) {
           console.error('Profile photo upload error:', storageError)
           toast.error(`Photo upload failed: ${storageError instanceof Error ? storageError.message : 'Unknown error'}`)
@@ -203,40 +248,54 @@ export default function ProfilePage() {
         }
       }
 
-      // Update users table with common fields
-      await userQueries.updateUser(user.id, {
+      if (resumeFile) {
+        setIsUploadingResume(true)
+        try {
+          const uploaded = await uploadService.uploadResume(resumeFile)
+          resumeUrl = uploaded.path
+          const signed = await uploadService.getResumeUrl(uploaded.path)
+          setResumeUrl(signed.url)
+          setResumePath(uploaded.path)
+        } catch (resumeError) {
+          console.error('Resume upload error:', resumeError)
+          toast.error(`Resume upload failed: ${resumeError instanceof Error ? resumeError.message : 'Unknown error'}`)
+          throw resumeError
+        } finally {
+          setIsUploadingResume(false)
+        }
+      }
+
+      await profileService.updateProfile({
         full_name: data.full_name,
         phone: data.phone || undefined,
+        department_id: data.department_id || undefined,
         linkedin_url: data.linkedin_url || undefined,
         short_bio: data.short_bio || undefined,
         profile_picture_url: profilePictureUrl || undefined,
+        batch: data.batch || undefined,
+        skills: data.skills,
+        experience: (data as AlumniEditFormData & StudentEditFormData).experience || undefined,
+        portfolio_url: (data as AlumniEditFormData & StudentEditFormData).portfolio_url || undefined,
+        github_url: (data as AlumniEditFormData & StudentEditFormData).github_url || undefined,
+        resume_url: resumeUrl || undefined,
+        ...(isAlumni
+          ? {
+              current_company: (data as AlumniEditFormData).current_company || undefined,
+              job_title: (data as AlumniEditFormData).job_title || undefined,
+            }
+          : {
+              interests: (data as StudentEditFormData).interests,
+              semester: (data as StudentEditFormData).semester,
+              cgpa: (data as StudentEditFormData).cgpa,
+            }),
       })
-
-      // Update role-specific profile table
-      if (isAlumni) {
-        const alumniData = data as AlumniEditFormData
-        await profileQueries.upsertAlumniProfile({
-          user_id: user.id,
-          skills: alumniData.skills,
-          current_company: alumniData.current_company || undefined,
-          job_title: alumniData.job_title || undefined,
-        })
-      } else {
-        const studentData = data as StudentEditFormData
-        await profileQueries.upsertStudentProfile({
-          user_id: user.id,
-          skills: studentData.skills,
-          interests: studentData.interests,
-          github_url: studentData.github_url || undefined,
-          semester: studentData.semester,
-          cgpa: studentData.cgpa,
-        })
-      }
 
       // Update local state
       setUser(prev => prev ? { ...prev, ...data, profile_picture_url: profilePictureUrl } : prev)
+      setProfile(prev => prev ? { ...prev, ...data, resume_url: resumeUrl || prev.resume_url, avatar_url: profilePictureUrl } : prev)
       setProfileImageFile(null)
       setProfileImagePreview(null)
+      setResumeFile(null)
       setIsEditing(false)
       toast.success('Profile updated successfully!')
     } catch (error) {
@@ -264,6 +323,21 @@ export default function ProfilePage() {
     }
     setProfileImageFile(file)
     setProfileImagePreview(URL.createObjectURL(file))
+  }
+
+  const handleResumeChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const allowed = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+    if (!allowed.includes(file.type)) {
+      toast.error('Resume must be PDF or Word document.')
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Resume must be 10MB or less.')
+      return
+    }
+    setResumeFile(file)
   }
 
   const handleStartChat = async () => {
@@ -345,6 +419,32 @@ export default function ProfilePage() {
                 {errors.full_name && <p className="text-sm text-red-600 mt-1">{getErrorMessage(errors.full_name)}</p>}
               </div>
 
+              {/* Department + Batch */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Department</label>
+                  <select
+                    {...register('department_id')}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select</option>
+                    {departments.map(d => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                  {deptError && <p className="text-sm text-red-600 mt-1">{deptError}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Batch</label>
+                  <input
+                    type="text"
+                    {...register('batch')}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {errors.batch && <p className="text-sm text-red-600 mt-1">{getErrorMessage(errors.batch)}</p>}
+                </div>
+              </div>
+
               {/* Phone */}
               <div>
                 <label className="block text-sm font-medium mb-2">Phone</label>
@@ -366,6 +466,42 @@ export default function ProfilePage() {
                   className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 {errors.linkedin_url && <p className="text-sm text-red-600 mt-1">{getErrorMessage(errors.linkedin_url)}</p>}
+              </div>
+
+              {/* GitHub + Portfolio */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">GitHub URL</label>
+                  <input
+                    type="url"
+                    {...register('github_url')}
+                    placeholder="https://github.com/yourprofile"
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {errors.github_url && <p className="text-sm text-red-600 mt-1">{getErrorMessage(errors.github_url)}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Portfolio URL</label>
+                  <input
+                    type="url"
+                    {...register('portfolio_url')}
+                    placeholder="https://yourportfolio.com"
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {errors.portfolio_url && <p className="text-sm text-red-600 mt-1">{getErrorMessage(errors.portfolio_url)}</p>}
+                </div>
+              </div>
+
+              {/* Experience */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Experience</label>
+                <textarea
+                  {...register('experience')}
+                  rows={3}
+                  placeholder="Summarize your experience..."
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+                {errors.experience && <p className="text-sm text-red-600 mt-1">{getErrorMessage(errors.experience)}</p>}
               </div>
 
               {/* Bio */}
@@ -390,6 +526,23 @@ export default function ProfilePage() {
                   placeholder="Type a skill and press Enter"
                 />
                 {errors.skills && <p className="text-sm text-red-600 mt-1">{getErrorMessage(errors.skills)}</p>}
+              </div>
+
+              {/* Resume Upload */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Resume (PDF/Word)</label>
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  onChange={handleResumeChange}
+                  className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+                />
+                {resumeUrl && (
+                  <a href={resumeUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-700 mt-2 inline-block">
+                    View current resume
+                  </a>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">Max 10MB.</p>
               </div>
 
               {/* Alumni-specific fields */}
@@ -429,17 +582,6 @@ export default function ProfilePage() {
                       placeholder="Type an interest and press Enter"
                     />
                     {errors.interests && <p className="text-sm text-red-600 mt-1">{getErrorMessage(errors.interests)}</p>}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">GitHub URL</label>
-                    <input
-                      type="url"
-                      {...register('github_url')}
-                      placeholder="https://github.com/yourprofile"
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    {errors.github_url && <p className="text-sm text-red-600 mt-1">{getErrorMessage(errors.github_url)}</p>}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -525,9 +667,10 @@ export default function ProfilePage() {
                 <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                   user.role === 'alumni' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
                   user.role === 'super_admin' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                  user.role === 'sub_admin' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' :
                   'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                 }`}>
-                  {user.role === 'alumni' ? '💼 Alumni' : user.role === 'super_admin' ? '🛡️ Admin' : '🎓 Student'}
+                  {user.role === 'alumni' ? '💼 Alumni' : user.role === 'super_admin' ? '🛡️ Admin' : user.role === 'sub_admin' ? '🧩 Sub Admin' : '🎓 Student'}
                 </span>
               </div>
 
@@ -544,8 +687,8 @@ export default function ProfilePage() {
               )}
 
               {/* Bio */}
-              {user.short_bio ? (
-                <p className="text-sm text-muted-foreground mt-3 leading-relaxed">{user.short_bio}</p>
+              {(profile?.bio || user.short_bio) ? (
+                <p className="text-sm text-muted-foreground mt-3 leading-relaxed">{profile?.bio || user.short_bio}</p>
               ) : null}
 
               {/* Actions */}
@@ -572,14 +715,14 @@ export default function ProfilePage() {
                   <Mail className="w-4 h-4 shrink-0" />
                   <span className="truncate">{user.email}</span>
                 </div>
-                {user.phone && (
+                {(profile?.phone || user.phone) && (
                   <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
                     <Phone className="w-4 h-4 shrink-0" />
-                    <span>{user.phone}</span>
+                    <span>{profile?.phone || user.phone}</span>
                   </div>
                 )}
-                {user.linkedin_url && (
-                  <a href={user.linkedin_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 text-sm text-blue-600 hover:text-blue-700">
+                {(profile?.linkedin_url || user.linkedin_url) && (
+                  <a href={profile?.linkedin_url || user.linkedin_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 text-sm text-blue-600 hover:text-blue-700">
                     <Linkedin className="w-4 h-4 shrink-0" />
                     LinkedIn Profile
                   </a>
@@ -588,6 +731,18 @@ export default function ProfilePage() {
                   <a href={profile.github_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 text-sm text-gray-700 dark:text-gray-300 hover:text-foreground">
                     <Github className="w-4 h-4 shrink-0" />
                     GitHub Profile
+                  </a>
+                )}
+                {profile?.portfolio_url && (
+                  <a href={profile.portfolio_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 text-sm text-gray-700 dark:text-gray-300 hover:text-foreground">
+                    <Briefcase className="w-4 h-4 shrink-0" />
+                    Portfolio
+                  </a>
+                )}
+                {resumeUrl && (
+                  <a href={resumeUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 text-sm text-gray-700 dark:text-gray-300 hover:text-foreground">
+                    <Award className="w-4 h-4 shrink-0" />
+                    Resume
                   </a>
                 )}
               </div>
@@ -673,6 +828,17 @@ export default function ProfilePage() {
                     <span key={skill} className="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-sm font-medium">{skill}</span>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Experience */}
+            {profile?.experience && (
+              <div className="bg-card border border-border rounded-2xl p-5">
+                <h2 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                  <Briefcase className="w-4.5 h-4.5 text-violet-500" />
+                  Experience
+                </h2>
+                <p className="text-sm text-muted-foreground whitespace-pre-line">{profile.experience}</p>
               </div>
             )}
 

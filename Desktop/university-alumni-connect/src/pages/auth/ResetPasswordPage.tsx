@@ -5,10 +5,13 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Mail, Loader2, ArrowLeft, CheckCircle } from 'lucide-react'
-import { resetPassword } from '@/lib/firebase/auth'
+import { passwordResetService } from '@/services/passwordResetService'
 import toast from 'react-hot-toast'
 
-const schema = z.object({ email: z.string().email('Invalid email address') })
+const schema = z.object({
+  email: z.string().email('Invalid email address'),
+  message: z.string().max(500, 'Message too long').optional().or(z.literal('')),
+})
 type FormData = z.infer<typeof schema>
 
 export default function ResetPasswordPage() {
@@ -18,8 +21,12 @@ export default function ResetPasswordPage() {
 
   const onSubmit = async (data: FormData) => {
     setLoading(true)
-    try { await resetPassword(data.email); setSent(true) }
-    catch { toast.error('Failed to send reset email. Check if the email is registered.') }
+    try {
+      await passwordResetService.createRequest(data.email, data.message ? data.message : undefined)
+      setSent(true)
+    } catch {
+      toast.error('Failed to send reset request. Please try again.')
+    }
     finally { setLoading(false) }
   }
 
@@ -44,8 +51,8 @@ export default function ResetPasswordPage() {
             </div>
           ) : (
             <>
-              <h1 className="text-xl sm:text-2xl font-bold mb-1">Reset Password</h1>
-              <p className="text-muted-foreground text-xs sm:text-sm mb-6">Enter your email to receive a reset link</p>
+              <h1 className="text-xl sm:text-2xl font-bold mb-1">Request Password Reset</h1>
+              <p className="text-muted-foreground text-xs sm:text-sm mb-6">Send a request to admin for manual reset</p>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-5">
                 <div>
                   <label className="block text-sm font-medium mb-2">Email Address</label>
@@ -55,8 +62,18 @@ export default function ResetPasswordPage() {
                   </div>
                   {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>}
                 </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Message (optional)</label>
+                  <textarea
+                    {...register('message')}
+                    rows={3}
+                    placeholder="Add any details to help the admin verify you..."
+                    className="w-full px-4 py-2.5 sm:py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm transition-all resize-none"
+                  />
+                  {errors.message && <p className="mt-1 text-xs text-red-500">{errors.message.message}</p>}
+                </div>
                 <button type="submit" disabled={loading} className="w-full min-h-12 py-2.5 sm:py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 text-sm sm:text-base">
-                  {loading ? <><Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /><span>Sending...</span></> : 'Send Reset Link'}
+                  {loading ? <><Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /><span>Sending...</span></> : 'Send Request'}
                 </button>
               </form>
               <Link to="/auth/login" className="flex items-center justify-center gap-2 mt-5 text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors">

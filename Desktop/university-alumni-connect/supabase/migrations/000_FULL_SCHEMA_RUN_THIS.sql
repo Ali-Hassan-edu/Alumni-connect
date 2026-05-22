@@ -362,23 +362,59 @@ ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE direct_messages ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "allow_all_users" ON users;
 CREATE POLICY "allow_all_users" ON users FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "allow_all_alumni_profiles" ON alumni_profiles;
 CREATE POLICY "allow_all_alumni_profiles" ON alumni_profiles FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "allow_all_student_profiles" ON student_profiles;
 CREATE POLICY "allow_all_student_profiles" ON student_profiles FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "allow_all_tasks" ON tasks;
 CREATE POLICY "allow_all_tasks" ON tasks FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "allow_all_task_assignments" ON task_assignments;
 CREATE POLICY "allow_all_task_assignments" ON task_assignments FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "allow_all_threads" ON threads;
 CREATE POLICY "allow_all_threads" ON threads FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "allow_all_replies" ON thread_replies;
 CREATE POLICY "allow_all_replies" ON thread_replies FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "allow_all_votes" ON thread_votes;
 CREATE POLICY "allow_all_votes" ON thread_votes FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "allow_all_events" ON events;
 CREATE POLICY "allow_all_events" ON events FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "allow_all_rsvps" ON event_rsvps;
 CREATE POLICY "allow_all_rsvps" ON event_rsvps FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "allow_all_notifications" ON notifications;
 CREATE POLICY "allow_all_notifications" ON notifications FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "allow_all_conversations" ON conversations;
 CREATE POLICY "allow_all_conversations" ON conversations FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "allow_all_dm" ON direct_messages;
 CREATE POLICY "allow_all_dm" ON direct_messages FOR ALL USING (true) WITH CHECK (true);
 
 -- ── REALTIME ───────────────────────────────────────────────────────────────
 
-ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
-ALTER PUBLICATION supabase_realtime ADD TABLE direct_messages;
-ALTER PUBLICATION supabase_realtime ADD TABLE conversations;
-ALTER PUBLICATION supabase_realtime ADD TABLE threads;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE direct_messages;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE conversations;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE threads;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;

@@ -101,7 +101,7 @@ export default function AdminDashboard() {
     const [statsData, pendingData, tasksData] = await Promise.all([
       userQueries.getDashboardStats(),
       userQueries.getAllUsers({ status: 'pending', limit: 5 }),
-      supabase.from('tasks').select('*, alumni:users(full_name, email)').order('created_at', { ascending: false }).limit(5),
+      supabase.from('tasks').select('*, alumni:users!tasks_posted_by_fkey(full_name, email)').order('created_at', { ascending: false }).limit(5),
     ])
     setStats(statsData)
     setPendingUsers(pendingData.data)
@@ -166,15 +166,17 @@ export default function AdminDashboard() {
             <p className="text-muted-foreground text-sm mt-1">Welcome back, {dbUser?.full_name?.split(' ')[0]}. Here&apos;s what&apos;s happening.</p>
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Link to="/dashboard/admin/approvals" className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors flex-1 sm:flex-none justify-center sm:justify-start">
-              <UserCheck className="w-4 h-4" />
-              <span className="hidden sm:block">Manage Approvals</span>
-              {stats && stats.pending_requests > 0 && (
-                <span className="w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold">
-                  {stats.pending_requests}
-                </span>
-              )}
-            </Link>
+            {dbUser?.role === 'super_admin' && (
+              <Link to="/dashboard/admin/approvals" className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors flex-1 sm:flex-none justify-center sm:justify-start">
+                <UserCheck className="w-4 h-4" />
+                <span className="hidden sm:block">Manage Approvals</span>
+                {stats && stats.pending_requests > 0 && (
+                  <span className="w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold">
+                    {stats.pending_requests}
+                  </span>
+                )}
+              </Link>
+            )}
           </div>
         </div>
 
@@ -183,7 +185,9 @@ export default function AdminDashboard() {
           <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 ${responsiveClasses.gapMd}`}>
             <StatCard label="Total Alumni" value={stats.total_alumni} icon={GraduationCap} color="bg-blue-100 dark:bg-blue-900/30 text-blue-600" sub="+12 this month" />
             <StatCard label="Active Students" value={stats.total_students} icon={Users} color="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600" sub="+8 this month" />
-            <StatCard label="Pending Approvals" value={stats.pending_requests} icon={Clock} color="bg-amber-100 dark:bg-amber-900/30 text-amber-600" />
+            {dbUser?.role === 'super_admin' && (
+              <StatCard label="Pending Approvals" value={stats.pending_requests} icon={Clock} color="bg-amber-100 dark:bg-amber-900/30 text-amber-600" />
+            )}
             <StatCard label="Total Tasks" value={stats.total_tasks} icon={Briefcase} color="bg-violet-100 dark:bg-violet-900/30 text-violet-600" />
             <StatCard label="Events" value={stats.total_events} icon={Calendar} color="bg-orange-100 dark:bg-orange-900/30 text-orange-600" />
             <StatCard label="Community Threads" value={stats.total_threads} icon={Shield} color="bg-teal-100 dark:bg-teal-900/30 text-teal-600" />
@@ -192,26 +196,28 @@ export default function AdminDashboard() {
 
         <div className={`grid grid-cols-1 lg:grid-cols-2 ${responsiveClasses.gapMd}`}>
           {/* Pending Approvals */}
-          <div className="bg-card border border-border rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-gray-900 dark:text-white">Pending Approvals</h2>
-              <Link to="/dashboard/admin/approvals" className="text-xs text-blue-600 hover:text-blue-700 font-medium">
-                View all →
-              </Link>
+          {dbUser?.role === 'super_admin' && (
+            <div className="bg-card border border-border rounded-2xl p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-semibold text-gray-900 dark:text-white">Pending Approvals</h2>
+                <Link to="/dashboard/admin/approvals" className="text-xs text-blue-600 hover:text-blue-700 font-medium">
+                  View all →
+                </Link>
+              </div>
+              {pendingUsers.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <CheckCircle className="w-8 h-8 mx-auto mb-2 text-emerald-500" />
+                  <p className="text-sm">No pending approvals!</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {pendingUsers.map(user => (
+                    <PendingUserRow key={user.id} user={user} onApprove={handleApprove} onReject={handleReject} />
+                  ))}
+                </div>
+              )}
             </div>
-            {pendingUsers.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <CheckCircle className="w-8 h-8 mx-auto mb-2 text-emerald-500" />
-                <p className="text-sm">No pending approvals!</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {pendingUsers.map(user => (
-                  <PendingUserRow key={user.id} user={user} onApprove={handleApprove} onReject={handleReject} />
-                ))}
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Recent Tasks */}
           <div className="bg-card border border-border rounded-2xl p-5">
@@ -258,8 +264,13 @@ export default function AdminDashboard() {
           <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: 'Approve Users', href: '/dashboard/admin/approvals', icon: UserCheck, color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' },
-              { label: 'Manage Users', href: '/dashboard/admin/users', icon: Users, color: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' },
+              ...(dbUser?.role === 'super_admin' ? [
+                { label: 'Approve Users', href: '/dashboard/admin/approvals', icon: UserCheck, color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' },
+                { label: 'Manage Users', href: '/dashboard/admin/users', icon: Users, color: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' },
+              ] : []),
+              { label: 'Moderate Posts', href: '/dashboard/admin/moderation', icon: Shield, color: 'text-teal-600 bg-teal-50 dark:bg-teal-900/20' },
+              { label: 'Flagged Reports', href: '/dashboard/admin/reports', icon: AlertTriangle, color: 'text-rose-600 bg-rose-50 dark:bg-rose-900/20' },
+              { label: 'Password Resets', href: '/dashboard/admin/password-resets', icon: Clock, color: 'text-amber-600 bg-amber-50 dark:bg-amber-900/20' },
               { label: 'Manage Tasks', href: '/dashboard/admin/tasks', icon: Briefcase, color: 'text-violet-600 bg-violet-50 dark:bg-violet-900/20' },
               { label: 'Create Event', href: '/events/new', icon: Calendar, color: 'text-orange-600 bg-orange-50 dark:bg-orange-900/20' },
             ].map(({ label, href, icon: Icon, color }) => (

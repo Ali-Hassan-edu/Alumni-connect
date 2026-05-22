@@ -1,27 +1,41 @@
+// src/pages/events/NewEventPage.tsx
 
-
-// src/app/events/new/page.tsx
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { ArrowLeft, Loader2, Calendar } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { eventQueries, notificationQueries, userQueries } from '@/lib/supabase/queries'
 import { useAuthStore } from '@/lib/stores/authStore'
-import { eventSchema } from '@/lib/validations'
-import type { EventFormData } from '@/lib/validations'
+import type { EventType } from '@/lib/types'
+
+// ── Local schema without tags (tags managed by useState, not form)
+const eventFormSchema = z.object({
+  title: z.string().min(5, 'Title must be at least 5 characters'),
+  description: z.string().min(20, 'Description required'),
+  event_type: z.string().min(1, 'Please select an event type'),
+  location: z.string().optional(),
+  is_virtual: z.boolean(),
+  virtual_link: z.string().url('Invalid URL').optional().or(z.literal('')),
+  event_date: z.string().min(1, 'Date is required'),
+  end_date: z.string().optional(),
+  max_attendees: z.number().positive().optional().or(z.nan()).transform(v => (typeof v === 'number' && isNaN(v)) ? undefined : v),
+})
+
+type EventFormValues = z.infer<typeof eventFormSchema>
 
 export default function NewEventPage() {
   const navigate = useNavigate()
   const { dbUser } = useAuthStore()
   const [isLoading, setIsLoading] = useState(false)
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<EventFormData>({
-    resolver: zodResolver(eventSchema),
-    defaultValues: { is_virtual: false, tags: [] },
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<EventFormValues>({
+    resolver: zodResolver(eventFormSchema),
+    defaultValues: { is_virtual: false },
   })
 
   const isVirtual = watch('is_virtual')
@@ -29,34 +43,38 @@ export default function NewEventPage() {
   const labelClass = "block text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-1.5"
   const errorClass = "mt-1 text-xs text-red-500"
 
-  const onSubmit = async (data: EventFormData) => {
+  const onSubmit = async (data: EventFormValues) => {
     if (!dbUser?.id) return
     setIsLoading(true)
     try {
       const event = await eventQueries.createEvent({
-        ...data,
+        title: data.title,
+        description: data.description,
+        event_type: data.event_type as EventType,
+        location: data.location || undefined,
+        is_virtual: data.is_virtual,
+        virtual_link: data.virtual_link || undefined,
+        event_date: data.event_date,
+        end_date: data.end_date || undefined,
+        max_attendees: data.max_attendees ?? undefined,
+        tags: [],
         created_by: dbUser.id,
         is_published: true,
-        event_type: data.event_type as import('@/lib/types').EventType,
       })
 
-      // Notify all approved alumni and students
+      // Notify users (non-blocking)
       try {
         const recipientIds = await userQueries.getApprovedUserIdsByRoles(['alumni', 'student'])
         if (recipientIds.length > 0) {
-          await notificationQueries.sendBulkNotification(
-            recipientIds,
-            {
-              type: 'event_created',
-              title: `📅 New Event: ${data.title}`,
-              message: `A new ${data.event_type.replace('_', ' ')} has been scheduled. Check it out!`,
-              link: `/events/${event.id}`,
-            }
-          )
+          await notificationQueries.sendBulkNotification(recipientIds, {
+            type: 'event_created',
+            title: `📅 New Event: ${data.title}`,
+            message: `A new ${data.event_type.replace(/_/g, ' ')} has been scheduled. Check it out!`,
+            link: `/events/${event.id}`,
+          })
         }
       } catch (notifyError) {
-        console.error('Failed to send notifications:', notifyError)
-        // Don't fail the event creation if notifications fail
+        console.error('Notification failed (non-critical):', notifyError)
       }
 
       toast.success('Event created and users notified!')
@@ -146,7 +164,7 @@ export default function NewEventPage() {
 
             {!isVirtual && (
               <div>
-                <label className={labelClass}>Physical Location <span className="text-red-500">*</span></label>
+                <label className={labelClass}>Physical Location</label>
                 <input {...register('location')} placeholder="e.g., Main Auditorium, COMSATS Vehari" className={inputClass} />
                 {errors.location && <p className={errorClass}>{errors.location.message}</p>}
               </div>
@@ -156,6 +174,7 @@ export default function NewEventPage() {
               <div>
                 <label className={labelClass}>Online Meeting Link</label>
                 <input {...register('virtual_link')} placeholder="https://meet.google.com/..." className={inputClass} />
+                {errors.virtual_link && <p className={errorClass}>{errors.virtual_link.message}</p>}
               </div>
             )}
           </div>

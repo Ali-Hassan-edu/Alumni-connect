@@ -2,7 +2,7 @@
 // University Alumni Connect — Core Types
 // ============================================================
 
-export type UserRole = 'super_admin' | 'alumni' | 'student'
+export type UserRole = 'super_admin' | 'sub_admin' | 'alumni' | 'student'
 export type AccountStatus = 'pending' | 'approved' | 'rejected' | 'blocked'
 export type TaskStatus = 'pending' | 'open' | 'approved' | 'assigned' | 'in_progress' | 'completed' | 'cancelled' | 'rejected'
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
@@ -22,8 +22,18 @@ export type NotificationType =
   | 'announcement'
   | 'direct_message'
   | 'reply'
+  | 'post_approved'
+  | 'post_rejected'
+  | 'password_reset_handled'
+  | 'comment'
+  | 'like'
+  | 'admin_message'
 export type PostType = 'discussion' | 'question' | 'opportunity' | 'internship' | 'job' | 'announcement'
 export type ApplicationStatus = 'pending' | 'accepted' | 'rejected'
+export type PostStatus = 'pending' | 'approved' | 'rejected'
+export type ModerationAction = 'approved' | 'rejected'
+export type PasswordResetStatus = 'pending' | 'resolved' | 'rejected'
+export type ReportStatus = 'open' | 'reviewing' | 'resolved' | 'dismissed'
 
 // ============================================================
 // User & Profile Types
@@ -46,6 +56,28 @@ export interface User {
   created_at: string
   updated_at: string
   last_seen_at?: string
+  department?: Department
+  profile?: Profile
+}
+
+export interface Profile {
+  id: string
+  user_id: string
+  department_id?: string
+  batch?: string
+  phone?: string
+  bio?: string
+  skills: string[]
+  social_links?: Record<string, string>
+  experience?: string
+  portfolio_url?: string
+  linkedin_url?: string
+  github_url?: string
+  resume_url?: string
+  avatar_url?: string
+  created_at: string
+  updated_at: string
+  user?: User
   department?: Department
 }
 
@@ -175,6 +207,61 @@ export interface ThreadVote {
 }
 
 // ============================================================
+// Community Posts (Moderated)
+// ============================================================
+
+export interface CommunityPost {
+  id: string
+  author_id: string
+  title: string
+  content: string
+  post_type: PostType
+  tags: string[]
+  status: PostStatus
+  is_pinned: boolean
+  is_locked: boolean
+  view_count: number
+  comment_count: number
+  like_count: number
+  approved_at?: string
+  approved_by?: string
+  rejection_reason?: string
+  created_at: string
+  updated_at: string
+  author?: User
+}
+
+export interface PostApproval {
+  id: string
+  post_id: string
+  action: ModerationAction
+  reason?: string
+  acted_by?: string
+  acted_at: string
+  created_at: string
+}
+
+export interface Comment {
+  id: string
+  post_id: string
+  author_id: string
+  content: string
+  parent_comment_id?: string
+  like_count: number
+  created_at: string
+  updated_at: string
+  author?: User
+}
+
+export interface Like {
+  id: string
+  user_id: string
+  post_id?: string
+  comment_id?: string
+  created_at: string
+}
+
+// ============================================================
 // Event Types
 // ============================================================
 
@@ -222,6 +309,57 @@ export interface Notification {
   message: string
   link?: string
   is_read: boolean
+  metadata?: Record<string, unknown>
+  created_at: string
+}
+
+// ============================================================
+// Password Reset Requests / Admin Notes / Reports / Logs
+// ============================================================
+
+export interface PasswordResetRequest {
+  id: string
+  user_id?: string
+  email: string
+  message?: string
+  status: PasswordResetStatus
+  admin_id?: string
+  admin_notes?: string
+  temp_password_sent_at?: string
+  created_at: string
+  updated_at: string
+  resolved_at?: string
+  user?: User
+}
+
+export interface AdminNote {
+  id: string
+  admin_id?: string
+  entity_type: string
+  entity_id: string
+  note: string
+  created_at: string
+  admin?: User
+}
+
+export interface Report {
+  id: string
+  reporter_id?: string
+  target_type: string
+  target_id: string
+  reason: string
+  status: ReportStatus
+  resolved_by?: string
+  resolved_at?: string
+  created_at: string
+}
+
+export interface ActivityLog {
+  id: string
+  actor_id?: string
+  action: string
+  entity_type: string
+  entity_id?: string
   metadata?: Record<string, unknown>
   created_at: string
 }
@@ -303,38 +441,13 @@ export interface DashboardStats {
 // Form Types (for React Hook Form)
 // ============================================================
 
-export interface AlumniSignupForm {
+export interface SignupForm {
   full_name: string
   email: string
   password: string
   confirm_password: string
   registration_number: string
-  department_id: string
   batch: string
-  passing_year: string
-  current_company?: string
-  job_title?: string
-  linkedin_url?: string
-  phone: string
-  skills: string[]
-  short_bio?: string
-}
-
-export interface StudentSignupForm {
-  full_name: string
-  email: string
-  password: string
-  confirm_password: string
-  registration_number: string
-  department_id: string
-  semester: string
-  cgpa: string
-  skills: string[]
-  interests: string[]
-  phone: string
-  linkedin_url?: string
-  github_url?: string
-  short_bio?: string
 }
 
 export interface LoginForm {
