@@ -49,7 +49,7 @@ export interface User {
   profile_picture_url?: string
   phone?: string
   department_id?: string
-  registration_number: string
+  registration_number?: string | null
   linkedin_url?: string
   short_bio?: string
   is_email_verified: boolean
@@ -444,10 +444,20 @@ export interface DashboardStats {
 export interface SignupForm {
   full_name: string
   email: string
+  phone: string
   password: string
   confirm_password: string
+  department: 'MCS' | 'BSCS' | 'BSSE' | 'BSTN'
+  session: string
+  registration_number?: string
+}
+
+export interface StudentSignupForm extends SignupForm {
   registration_number: string
-  batch: string
+}
+
+export interface AlumniSignupForm extends Omit<SignupForm, 'registration_number'> {
+  registration_number?: string
 }
 
 export interface LoginForm {

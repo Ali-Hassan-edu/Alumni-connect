@@ -53,7 +53,8 @@ export default function ApprovalsPage() {
   }
 
   const filtered = users.filter(u => {
-    const matchSearch = !search || u.full_name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()) || u.registration_number.toLowerCase().includes(search.toLowerCase())
+    const registrationNumber = u.registration_number || ''
+    const matchSearch = !search || u.full_name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()) || registrationNumber.toLowerCase().includes(search.toLowerCase())
     const matchRole = filterRole === 'all' || u.role === filterRole
     return matchSearch && matchRole
   })

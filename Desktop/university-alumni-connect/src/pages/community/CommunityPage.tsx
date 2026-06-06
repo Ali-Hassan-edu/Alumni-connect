@@ -35,36 +35,44 @@ const FILTERS: { label: string; value: string }[] = [
 function ThreadCard({ thread, isPreview }: { thread: CommunityPost; isPreview: boolean }) {
   const config = POST_TYPE_CONFIG[thread.post_type]
   const Icon = config.icon
+  const createdAt = formatDistanceToNow(new Date(thread.created_at), { addSuffix: true })
 
   return (
-    <Link to={isPreview ? '/auth/login' : `/community/${thread.id}`} className="thread-card block">
-      <div className="flex items-start gap-4">
+    <Link to={isPreview ? '/auth/login' : `/community/${thread.id}`} className="block bg-card border border-border rounded-2xl p-4 sm:p-5 hover:border-blue-200 dark:hover:border-blue-800/50 hover:shadow-md transition-all">
+      <div className="flex items-start gap-3 sm:gap-4">
         {/* Vote count */}
-        <div className="flex flex-col items-center gap-1 shrink-0 pt-1">
+        <div className="hidden sm:flex flex-col items-center gap-1 shrink-0 pt-1">
           <ChevronUp className="w-4 h-4 text-muted-foreground" />
           <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{thread.like_count}</span>
         </div>
 
         <div className="flex-1 min-w-0">
           {/* Meta row */}
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-3 flex-wrap">
+            <span className="sm:hidden inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">
+              <ChevronUp className="w-3 h-3" />
+              {thread.like_count}
+            </span>
             {thread.is_pinned && <Pin className="w-3.5 h-3.5 text-amber-500" />}
             {thread.is_locked && <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
-            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${config.color}`}>
+            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium max-w-full ${config.color}`}>
               <Icon className="w-3 h-3" />
               {config.label}
             </span>
-            {thread.tags.slice(0, 3).map(tag => (
-              <span key={tag} className="text-xs px-1.5 py-0.5 bg-muted text-muted-foreground rounded-full">{tag}</span>
+            {thread.tags.slice(0, 2).map(tag => (
+              <span key={tag} className="text-xs px-1.5 py-0.5 bg-muted text-muted-foreground rounded-full max-w-[8rem] truncate">{tag}</span>
             ))}
+            {thread.tags.length > 2 && (
+              <span className="text-xs px-1.5 py-0.5 bg-muted text-muted-foreground rounded-full">+{thread.tags.length - 2}</span>
+            )}
           </div>
 
-          <h3 className="font-semibold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-2 mb-2">
+          <h3 className="font-semibold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-2 mb-2 break-safe text-[15px] sm:text-base leading-snug">
             {thread.title}
           </h3>
 
           <div className={isPreview ? 'relative' : ''}>
-            <p className={`text-sm text-muted-foreground line-clamp-2 mb-3 ${isPreview ? 'blur-[1.5px]' : ''}`}>{thread.content}</p>
+            <p className={`text-sm text-muted-foreground line-clamp-2 mb-4 break-safe leading-relaxed ${isPreview ? 'blur-[1.5px]' : ''}`}>{thread.content}</p>
             {isPreview && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <span className="text-xs px-2 py-1 rounded-full bg-white/80 dark:bg-gray-900/80 border border-border text-muted-foreground">
@@ -75,13 +83,13 @@ function ThreadCard({ thread, isPreview }: { thread: CommunityPost; isPreview: b
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
               {thread.author && (
                 <>
                   <Avatar name={thread.author.full_name} imageUrl={thread.author.profile_picture_url} size="sm" />
-                  <div>
-                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{thread.author.full_name}</span>
+                  <div className="min-w-0">
+                    <span className="block text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{thread.author.full_name}</span>
                     <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full capitalize ${
                       thread.author.role === 'alumni' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                     }`}>{thread.author.role}</span>
@@ -89,18 +97,18 @@ function ThreadCard({ thread, isPreview }: { thread: CommunityPost; isPreview: b
                 </>
               )}
             </div>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
+            <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap sm:flex-nowrap">
+              <span className="flex items-center gap-1 whitespace-nowrap">
                 <MessageSquare className="w-3.5 h-3.5" />
                 {thread.comment_count}
               </span>
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-1 whitespace-nowrap">
                 <Eye className="w-3.5 h-3.5" />
                 {thread.view_count}
               </span>
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-1 whitespace-nowrap">
                 <Clock className="w-3.5 h-3.5" />
-                {formatDistanceToNow(new Date(thread.created_at), { addSuffix: true })}
+                {createdAt}
               </span>
             </div>
           </div>
@@ -164,7 +172,7 @@ export default function CommunityPage() {
 
   return (
     <DashboardLayout>
-      <div className="p-4 sm:p-6 lg:p-8">
+      <div className="p-3 sm:p-6 lg:p-8 min-w-0">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div>
@@ -228,7 +236,7 @@ export default function CommunityPage() {
                   className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
+              <div className="flex gap-2 overflow-x-auto pb-2 -mx-3 px-3 sm:mx-0 sm:px-0 scrollbar-hide">
                 {FILTERS.map(({ label, value }) => (
                   <button
                     key={value}

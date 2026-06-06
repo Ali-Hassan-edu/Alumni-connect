@@ -10,21 +10,46 @@ export const loginSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
 })
 
-export const signupSchema = z.object({
+// Student signup — roll number required
+export const studentSignupSchema = z.object({
   full_name: z.string().min(2, 'Full name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
+  phone: z.string().min(10, 'Phone number must be at least 10 digits'),
   password: z.string()
     .min(8, 'Password must be at least 8 characters')
     .regex(/[A-Z]/, 'Must contain uppercase letter')
     .regex(/[0-9]/, 'Must contain a number')
     .regex(/[^A-Za-z0-9]/, 'Must contain a special character'),
   confirm_password: z.string(),
-  registration_number: z.string().min(4, 'Registration number is required'),
-  batch: z.string().min(4, 'Batch is required (e.g., 2018)'),
+  department: z.enum(['MCS', 'BSCS', 'BSSE', 'BSTN'], { required_error: 'Department is required' }),
+  session: z.string().min(1, 'Session/Batch is required'),
+  registration_number: z.string().min(4, 'Registration number is required for students'),
 }).refine((data) => data.password === data.confirm_password, {
   message: "Passwords don't match",
   path: ['confirm_password'],
 })
+
+// Alumni signup — roll number optional
+export const alumniSignupSchema = z.object({
+  full_name: z.string().min(2, 'Full name must be at least 2 characters'),
+  email: z.string().email('Invalid email address'),
+  phone: z.string().min(10, 'Phone number must be at least 10 digits'),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Must contain uppercase letter')
+    .regex(/[0-9]/, 'Must contain a number')
+    .regex(/[^A-Za-z0-9]/, 'Must contain a special character'),
+  confirm_password: z.string(),
+  department: z.enum(['MCS', 'BSCS', 'BSSE', 'BSTN'], { required_error: 'Department is required' }),
+  session: z.string().min(1, 'Session/Batch is required'),
+  registration_number: z.string().optional(),
+}).refine((data) => data.password === data.confirm_password, {
+  message: "Passwords don't match",
+  path: ['confirm_password'],
+})
+
+// Legacy — keep for backward compat
+export const signupSchema = studentSignupSchema
 
 // ============================================================
 // Task Schemas
@@ -48,8 +73,6 @@ export const threadSchema = z.object({
   title: z.string().min(10, 'Title must be at least 10 characters'),
   content: z.string().min(30, 'Content must be at least 30 characters'),
   post_type: z.enum(['discussion', 'question', 'opportunity', 'internship', 'job', 'announcement']),
-  // tags are managed by useState in NewThreadPage, NOT registered in react-hook-form
-  // Keeping it optional here so any legacy code that still passes tags doesn't break
   tags: z.array(z.string()).max(5).optional(),
 })
 
@@ -86,7 +109,9 @@ export const profileUpdateSchema = z.object({
 })
 
 export type LoginFormData = z.infer<typeof loginSchema>
-export type SignupFormData = z.infer<typeof signupSchema>
+export type StudentSignupFormData = z.infer<typeof studentSignupSchema>
+export type AlumniSignupFormData = z.infer<typeof alumniSignupSchema>
+export type SignupFormData = StudentSignupFormData
 export type TaskFormData = z.infer<typeof taskSchema>
 export type ThreadFormData = z.infer<typeof threadSchema>
 export type EventFormData = z.infer<typeof eventSchema>

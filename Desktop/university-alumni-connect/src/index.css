@@ -5,6 +5,16 @@
 /* Smooth scrolling */
 html {
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+html,
+body,
+#root {
+  min-width: 0;
+  width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
 }
 
 /* Keyframe animations */
@@ -105,6 +115,39 @@ html {
   body {
     @apply bg-background text-foreground font-sans;
     font-feature-settings: "rlig" 1, "calt" 1;
+    text-rendering: optimizeLegibility;
+  }
+
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  a,
+  span,
+  button,
+  label {
+    min-width: 0;
+  }
+
+  table {
+    width: 100%;
   }
 }
 
@@ -131,15 +174,28 @@ html {
     animation: slideInRight 0.5s ease-out;
   }
 
+  .page-shell {
+    @apply w-full min-w-0 px-4 sm:px-6 lg:px-8 py-5 sm:py-6 lg:py-8;
+    animation: slideInUp 0.35s ease-out;
+  }
+
+  .soft-panel {
+    @apply bg-card/95 border border-border shadow-sm;
+  }
+
+  .interactive-card {
+    @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/5 dark:hover:shadow-black/20;
+  }
+
   /* Navigation item with smooth transitions and hover scale */
   .nav-item {
     @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
            text-muted-foreground hover:text-foreground hover:bg-accent
-           transition-all duration-150 cursor-pointer
-           hover:scale-105 active:scale-95;
+           transition-all duration-200 cursor-pointer
+           active:scale-[0.98];
   }
   .nav-item.active {
-    @apply bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400;
+    @apply bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 shadow-sm;
   }
 
   /* Thread card with smooth transitions and hover effects */
@@ -147,7 +203,7 @@ html {
     @apply p-5 bg-card border border-border rounded-2xl
            hover:border-blue-200 dark:hover:border-blue-800/50
            hover:shadow-sm transition-all duration-200 cursor-pointer
-           hover:scale-[1.02] hover:-translate-y-1;
+           hover:-translate-y-0.5;
   }
 
   /* Skeleton with animation */
@@ -171,23 +227,12 @@ html {
   [role="button"],
   input[type="button"],
   input[type="submit"] {
-    @apply transition-all duration-150 active:scale-95;
-  }
-
-  button:hover,
-  [role="button"]:hover,
-  input[type="button"]:hover,
-  input[type="submit"]:hover {
-    @apply transform scale-105;
+    @apply transition-colors duration-200 active:scale-[0.98];
   }
 
   /* Link hover effects */
   a {
-    @apply transition-all duration-150;
-  }
-
-  a:hover {
-    @apply opacity-75;
+    @apply transition-colors duration-200;
   }
 
   /* Smooth transitions for all interactive elements */
@@ -207,5 +252,66 @@ html {
   [class*="card"],
   [class*="container"] {
     @apply transition-all duration-200;
+  }
+
+  .mobile-safe-grid {
+    @apply grid grid-cols-1 gap-4 sm:gap-5 lg:gap-6;
+  }
+
+  .mobile-scroll {
+    @apply w-full overflow-x-auto overscroll-x-contain;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer utilities {
+  .break-safe {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .safe-top {
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+  }
+
+  .animate-soft-in {
+    animation: slideInUp 0.35s ease-out both;
+  }
+
+  .animate-soft-fade {
+    animation: fadeIn 0.3s ease-out both;
+  }
+}
+
+@media (max-width: 640px) {
+  h1 {
+    line-height: 1.15;
+  }
+
+  .rounded-3xl {
+    border-radius: 1rem;
+  }
+
+  .rounded-2xl {
+    border-radius: 0.875rem;
+  }
+
+  .table-wrap,
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
   }
 }

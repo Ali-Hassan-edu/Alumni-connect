@@ -82,7 +82,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="px-4 py-4 border-b border-border">
+      <div className="px-4 py-4 border-b border-border/80 bg-white/70 dark:bg-slate-950/50">
         <Link to="/" className="flex items-center gap-2.5">
           <img src="/logo.png" alt="Alumni Connect" className="w-8 h-8 rounded-lg object-cover shrink-0" loading="lazy" />
           <div>
@@ -93,7 +93,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto custom-scrollbar">
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar">
         {(role === 'super_admin' || role === 'sub_admin') && (
           <div className="flex items-center gap-2 px-3 py-2 mb-3 rounded-lg bg-purple-50 dark:bg-purple-900/20">
             <Shield className="w-4 h-4 text-purple-600 dark:text-purple-400" />
@@ -102,6 +102,17 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             </span>
           </div>
         )}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="w-full flex items-center justify-between gap-3 px-3 py-2.5 mb-3 rounded-xl border border-border/80 bg-white/70 dark:bg-slate-900/70 text-sm text-gray-800 dark:text-gray-200 hover:bg-accent"
+        >
+          <span className="flex items-center gap-3 font-medium">
+            {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-blue-600" />}
+            Theme Toggle
+          </span>
+          <span className="text-[11px] font-semibold text-muted-foreground">{isDark ? 'Light' : 'Dark'}</span>
+        </button>
         {navItems.map(({ to, label, icon: Icon }) => (
           <Link
             key={to}
@@ -121,7 +132,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       </nav>
 
       {/* User */}
-      <div className="px-3 py-3 border-t border-border">
+      <div className="px-3 py-3 border-t border-border/80 bg-white/70 dark:bg-slate-950/50 safe-bottom">
         {dbUser && (
           <div className="relative">
             <button
@@ -137,7 +148,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             </button>
 
             {userMenuOpen && (
-              <div className="absolute bottom-full left-0 right-0 mb-1 bg-white dark:bg-gray-800 border border-border rounded-xl shadow-lg overflow-hidden z-50">
+              <div className="absolute bottom-full left-0 right-0 mb-1 bg-white dark:bg-gray-800 border border-border rounded-xl shadow-lg overflow-hidden z-50 animate-soft-fade">
                 <Link to={`/profile/${dbUser.id}`} className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent transition-colors" onClick={() => setUserMenuOpen(false)}>
                   <User className="w-4 h-4" /> View Profile
                 </Link>
@@ -158,9 +169,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   )
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="flex h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/40 dark:from-slate-950 dark:via-slate-950 dark:to-blue-950/20 overflow-hidden">
       {/* Desktop sidebar - fixed width, always visible on lg+ */}
-      <aside className="hidden md:flex md:flex-col w-60 shrink-0 border-r border-border bg-card">
+      <aside className="hidden md:flex md:flex-col w-60 shrink-0 border-r border-border/80 bg-card/90 backdrop-blur-xl shadow-sm">
         <SidebarContent />
       </aside>
 
@@ -169,13 +180,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         <>
           {/* Backdrop - click to close, smooth fade */}
           <div
-            className="fixed inset-0 bg-black/40 z-40 md:hidden transition-opacity duration-200 fade-in"
+            className="fixed inset-0 bg-black/50 backdrop-blur-[2px] z-40 md:hidden transition-opacity duration-200 fade-in"
             onClick={() => setSidebarOpen(false)}
             aria-hidden="true"
           />
 
           {/* Drawer - slides in from left with smooth animation */}
-          <aside className="fixed top-0 left-0 bottom-0 w-64 sm:w-72 bg-card border-r border-border flex flex-col z-50 md:hidden transition-transform duration-300 ease-out transform translate-x-0 slide-in-left">
+          <aside className="fixed top-0 left-0 bottom-0 w-[min(18rem,86vw)] bg-card/95 backdrop-blur-xl border-r border-border flex flex-col z-50 md:hidden transition-transform duration-300 ease-out transform translate-x-0 slide-in-left shadow-2xl shadow-slate-900/25">
             {/* Close button - positioned in top right corner, touch-friendly */}
             <button
               onClick={() => setSidebarOpen(false)}
@@ -196,7 +207,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       {/* Main content area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Mobile topbar - visible only on mobile */}
-        <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-card">
+        <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border/80 bg-card/95 backdrop-blur-xl shadow-sm safe-top">
           {/* Hamburger menu button */}
           <button
             onClick={() => setSidebarOpen(true)}
@@ -213,24 +224,36 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <span className="font-bold text-sm">Alumni Connect</span>
           </div>
 
-          {/* Notifications link */}
-          <Link
-            to="/notifications"
-            className="relative p-2 rounded-lg hover:bg-accent transition-colors"
-            aria-label="Notifications"
-          >
-            <Bell className="w-5 h-5" />
-            {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold">
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
-            )}
-          </Link>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="p-2 rounded-lg hover:bg-accent transition-colors"
+              aria-label="Theme Toggle"
+            >
+              {isDark ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-blue-600" />}
+            </button>
+            {/* Notifications link */}
+            <Link
+              to="/notifications"
+              className="relative p-2 rounded-lg hover:bg-accent transition-colors"
+              aria-label="Notifications"
+            >
+              <Bell className="w-5 h-5" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </Link>
+          </div>
         </header>
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto">
-          {children}
+        <main className="flex-1 overflow-y-auto min-w-0">
+          <div className="min-w-0 animate-soft-in">
+            {children}
+          </div>
         </main>
       </div>
     </div>

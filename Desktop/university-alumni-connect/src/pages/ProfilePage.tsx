@@ -121,6 +121,14 @@ export default function ProfilePage() {
     return typeof message === 'string' ? message : undefined
   }
 
+  const getWhatsAppHref = (phone?: string) => {
+    if (!phone) return null
+    let digits = phone.replace(/\D/g, '')
+    if (digits.startsWith('00')) digits = digits.slice(2)
+    if (digits.startsWith('0')) digits = `92${digits.slice(1)}`
+    return digits ? `https://wa.me/${digits}` : null
+  }
+
   useEffect(() => { if (id) loadProfile() }, [id])
 
   useEffect(() => {
@@ -447,10 +455,11 @@ export default function ProfilePage() {
 
               {/* Phone */}
               <div>
-                <label className="block text-sm font-medium mb-2">Phone</label>
+                <label className="block text-sm font-medium mb-2">{isAlumni ? 'WhatsApp Number' : 'Phone'}</label>
                 <input
                   type="tel"
                   {...register('phone')}
+                  placeholder={isAlumni ? 'Enter WhatsApp number' : undefined}
                   className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 {errors.phone && <p className="text-sm text-red-600 mt-1">{getErrorMessage(errors.phone)}</p>}
@@ -715,12 +724,24 @@ export default function ProfilePage() {
                   <Mail className="w-4 h-4 shrink-0" />
                   <span className="truncate">{user.email}</span>
                 </div>
-                {(profile?.phone || user.phone) && (
-                  <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
-                    <Phone className="w-4 h-4 shrink-0" />
-                    <span>{profile?.phone || user.phone}</span>
-                  </div>
-                )}
+                {(profile?.phone || user.phone) && (() => {
+                  const phone = profile?.phone || user.phone || ''
+                  const whatsappHref = user.role === 'alumni' && (dbUser?.role === 'super_admin' || dbUser?.role === 'sub_admin')
+                    ? getWhatsAppHref(phone)
+                    : null
+
+                  return whatsappHref ? (
+                    <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 text-sm text-green-600 hover:text-green-700">
+                      <Phone className="w-4 h-4 shrink-0" />
+                      <span>{phone}</span>
+                    </a>
+                  ) : (
+                    <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                      <Phone className="w-4 h-4 shrink-0" />
+                      <span>{phone}</span>
+                    </div>
+                  )
+                })()}
                 {(profile?.linkedin_url || user.linkedin_url) && (
                   <a href={profile?.linkedin_url || user.linkedin_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 text-sm text-blue-600 hover:text-blue-700">
                     <Linkedin className="w-4 h-4 shrink-0" />

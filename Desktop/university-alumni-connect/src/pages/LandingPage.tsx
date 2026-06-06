@@ -355,9 +355,9 @@ export default function LandingPage() {
             {/* Logo & Description */}
             <div className="flex flex-col">
               <div className="flex items-center gap-3 mb-4">
-                <img src="/logo.png" alt="Alumni Connect" className="h-10 w-10 rounded-lg shadow-md" loading="lazy" />
+                <img src="/logo.png" alt="Alumni Connect" className="h-10 w-10 rounded-xl object-cover shadow-md shadow-blue-500/25 flex-shrink-0" loading="lazy" />
                 <div>
-                  <div className="font-bold text-gray-900 dark:text-white text-base">Alumni Connect</div>
+                  <div className="font-bold text-gray-900 dark:text-white text-base">CS Alumni Connect</div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">COMSATS Vehari</div>
                 </div>
               </div>
@@ -384,14 +384,14 @@ export default function LandingPage() {
               <div className="space-y-3 text-sm">
                 <div>
                   <p className="text-gray-500 dark:text-gray-500 text-xs uppercase tracking-wide mb-1">Email</p>
-                  <a href="mailto:hodcs@cuivehari.edu.pk" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                    hodcs@cuivehari.edu.pk
+                  <a href="mailto:abdullahwale@gmail.com" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    abdullahwale@gmail.com
                   </a>
                 </div>
                 <div>
                   <p className="text-gray-500 dark:text-gray-500 text-xs uppercase tracking-wide mb-1">Phone</p>
-                  <a href="tel:+923673602803" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                    +92 (067) 3602803
+                  <a href="tel:+923046983794" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    0304-6983794
                   </a>
                 </div>
               </div>

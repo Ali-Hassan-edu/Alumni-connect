@@ -155,12 +155,12 @@ export default function ThreadDetailPage() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 lg:p-8 max-w-4xl mx-auto">
+      <div className="p-3 sm:p-6 lg:p-8 max-w-4xl mx-auto min-w-0">
         <Link to="/community" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 w-fit transition-colors">
           <ArrowLeft className="w-4 h-4" /> Back to Community
         </Link>
 
-        <div className="bg-card border border-border rounded-2xl p-6 mb-6">
+        <div className="bg-card border border-border rounded-2xl p-4 sm:p-6 mb-6">
           <div className="flex items-center gap-2 mb-4 flex-wrap">
             <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${POST_TYPE_COLORS[post.post_type]}`}>
               {post.post_type}
@@ -170,19 +170,19 @@ export default function ThreadDetailPage() {
             ))}
           </div>
 
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{post.title}</h1>
-          <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap mb-6">{post.content}</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-4 break-safe leading-tight">{post.title}</h1>
+          <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap mb-6 break-safe">{post.content}</p>
 
-          <div className="flex items-center justify-between pt-4 border-t border-border">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-4 border-t border-border">
+            <div className="flex items-center gap-3 min-w-0">
               {post.author && (
                 <>
                   <Avatar name={post.author.full_name} imageUrl={post.author.profile_picture_url} />
-                  <div>
-                    <Link to={`/profile/${post.author_id}`} className="text-sm font-medium text-gray-900 dark:text-white hover:text-blue-600">
+                  <div className="min-w-0">
+                    <Link to={`/profile/${post.author_id}`} className="block text-sm font-medium text-gray-900 dark:text-white hover:text-blue-600 truncate">
                       {post.author.full_name}
                     </Link>
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
                       <span className="capitalize">{post.author.role}</span>
                       <span>•</span>
                       <Clock className="w-3 h-3" />
@@ -193,7 +193,7 @@ export default function ThreadDetailPage() {
               )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={handleLike}
                 disabled={isLiking}
@@ -215,7 +215,7 @@ export default function ThreadDetailPage() {
                   <ChevronDown className="w-3 h-3" />
                 </button>
                 {shareOpen && (
-                  <div className="absolute right-0 top-full mt-1 w-44 bg-card border border-border rounded-xl shadow-lg z-20 py-1">
+                  <div className="absolute right-0 top-full mt-1 w-44 max-w-[calc(100vw-2rem)] bg-card border border-border rounded-xl shadow-lg z-20 py-1">
                     <button onClick={() => handleShare('copy')} className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-accent text-left">
                       <Link2 className="w-4 h-4" /> Copy link
                     </button>
@@ -236,7 +236,7 @@ export default function ThreadDetailPage() {
                   <Flag className="w-4 h-4" />
                 </button>
                 {flagOpen && (
-                  <div className="absolute right-0 top-full mt-1 w-64 bg-card border border-border rounded-xl shadow-lg z-20 p-3">
+                  <div className="absolute right-0 top-full mt-1 w-64 max-w-[calc(100vw-2rem)] bg-card border border-border rounded-xl shadow-lg z-20 p-3">
                     <p className="text-xs font-semibold text-gray-900 dark:text-white mb-2">Report this post</p>
                     <textarea
                       value={flagReason}
@@ -268,21 +268,21 @@ export default function ThreadDetailPage() {
           ) : (
             <div className="space-y-4">
               {comments.map(comment => (
-                <div key={comment.id} className="p-5 rounded-2xl border border-border bg-card">
-                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{comment.content}</p>
-                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
-                    <div className="flex items-center gap-2">
+                <div key={comment.id} className="p-4 sm:p-5 rounded-2xl border border-border bg-card">
+                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap break-safe">{comment.content}</p>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-4 pt-3 border-t border-border">
+                    <div className="flex items-center gap-2 min-w-0">
                       {comment.author && (
                         <>
                           <Avatar name={comment.author.full_name} imageUrl={comment.author.profile_picture_url} size="sm" />
-                          <div>
-                            <div className="text-xs font-medium text-gray-900 dark:text-white">{comment.author.full_name}</div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-medium text-gray-900 dark:text-white truncate">{comment.author.full_name}</div>
                             <div className="text-xs text-muted-foreground capitalize">{comment.author.role}</div>
                           </div>
                         </>
                       )}
                     </div>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
                       {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
                     </span>
                   </div>
@@ -292,7 +292,7 @@ export default function ThreadDetailPage() {
           )}
         </div>
 
-        <div className="bg-card border border-border rounded-2xl p-5">
+        <div className="bg-card border border-border rounded-2xl p-4 sm:p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Add a Comment</h3>
           {!dbUser && (
             <p className="text-sm text-muted-foreground mb-3">
@@ -307,15 +307,15 @@ export default function ThreadDetailPage() {
             placeholder="Share your thoughts..."
             className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none transition-all"
           />
-          <div className="flex items-center justify-between mt-3">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-3">
+            <div className="flex items-center gap-2 min-w-0">
               <Avatar name={dbUser?.full_name || ''} imageUrl={dbUser?.profile_picture_url} size="sm" />
-              <span className="text-xs text-muted-foreground">Commenting as <strong>{dbUser?.full_name}</strong></span>
+              <span className="text-xs text-muted-foreground truncate">Commenting as <strong>{dbUser?.full_name}</strong></span>
             </div>
             <button
               onClick={handleComment}
               disabled={!dbUser || isPosting || !commentContent.trim()}
-              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
+              className="flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors w-full sm:w-auto"
             >
               {isPosting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               {isPosting ? 'Posting...' : 'Post Comment'}
